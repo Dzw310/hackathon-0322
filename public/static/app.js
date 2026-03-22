@@ -3,8 +3,13 @@ const state = {
   currentStep: null,
   totalSteps: 0,
   history: [],
+  userId: null,
+  ageGroup: "8-10",
+  coins: 0,
+  streak: 0,
 };
 
+// DOM elements
 const questionInput = document.getElementById("questionInput");
 const startButton = document.getElementById("startButton");
 const statusText = document.getElementById("statusText");
@@ -15,29 +20,135 @@ const answerInput = document.getElementById("answerInput");
 const answerButton = document.getElementById("answerButton");
 const timeline = document.getElementById("timeline");
 const summaryPanel = document.getElementById("summaryPanel");
+const rewardBanner = document.getElementById("rewardBanner");
+const ageGroupSelect = document.getElementById("ageGroupSelect");
 
+// Auth elements
+const loginView = document.getElementById("loginView");
+const registerView = document.getElementById("registerView");
+const userView = document.getElementById("userView");
+const usernameInput = document.getElementById("usernameInput");
+const loginBtn = document.getElementById("loginBtn");
+const showRegisterBtn = document.getElementById("showRegisterBtn");
+const regUsername = document.getElementById("regUsername");
+const regDisplayName = document.getElementById("regDisplayName");
+const regAgeGroup = document.getElementById("regAgeGroup");
+const registerBtn = document.getElementById("registerBtn");
+const backToLoginBtn = document.getElementById("backToLoginBtn");
+const displayNameText = document.getElementById("displayNameText");
+const coinsDisplay = document.getElementById("coinsDisplay");
+const streakDisplay = document.getElementById("streakDisplay");
+const logoutBtn = document.getElementById("logoutBtn");
+const authStatus = document.getElementById("authStatus");
+
+// ---- Auth ----
+function showAuthStatus(msg, isError = false) {
+  authStatus.textContent = msg;
+  authStatus.className = "auth-status" + (isError ? " warning" : "");
+}
+
+function setLoggedIn(user) {
+  state.userId = user.user_id;
+  state.ageGroup = user.age_group;
+  state.coins = user.coins;
+  state.streak = user.current_streak;
+
+  displayNameText.textContent = user.display_name;
+  coinsDisplay.textContent = user.coins + " coins";
+  streakDisplay.textContent = user.current_streak + " streak";
+  ageGroupSelect.value = user.age_group;
+
+  loginView.classList.add("hidden");
+  registerView.classList.add("hidden");
+  userView.classList.remove("hidden");
+  showAuthStatus("");
+
+  localStorage.setItem("thinkstep_username", user.username);
+}
+
+function logout() {
+  state.userId = null;
+  state.coins = 0;
+  state.streak = 0;
+  loginView.classList.remove("hidden");
+  registerView.classList.add("hidden");
+  userView.classList.add("hidden");
+  localStorage.removeItem("thinkstep_username");
+}
+
+loginBtn.addEventListener("click", async () => {
+  const username = usernameInput.value.trim();
+  if (!username) { showAuthStatus("Enter a username.", true); return; }
+  try {
+    const data = await postJson("/api/login", { username });
+    setLoggedIn(data.user);
+  } catch (e) { showAuthStatus(e.message, true); }
+});
+
+showRegisterBtn.addEventListener("click", () => {
+  loginView.classList.add("hidden");
+  registerView.classList.remove("hidden");
+});
+
+backToLoginBtn.addEventListener("click", () => {
+  registerView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+});
+
+registerBtn.addEventListener("click", async () => {
+  const username = regUsername.value.trim();
+  const displayName = regDisplayName.value.trim();
+  const ageGroup = regAgeGroup.value;
+  if (!username || !displayName) { showAuthStatus("Fill in all fields.", true); return; }
+  try {
+    const data = await postJson("/api/register", { username, displayName, ageGroup });
+    setLoggedIn(data.user);
+  } catch (e) { showAuthStatus(e.message, true); }
+});
+
+logoutBtn.addEventListener("click", logout);
+
+// Auto-login from localStorage
+(async function autoLogin() {
+  const saved = localStorage.getItem("thinkstep_username");
+  if (saved) {
+    try {
+      const data = await postJson("/api/login", { username: saved });
+      setLoggedIn(data.user);
+    } catch (_) { /* ignore */ }
+  }
+})();
+
+// ---- Session ----
 startButton.addEventListener("click", async () => {
   const question = questionInput.value.trim();
   if (!question) {
-    updateStatus("请先输入一个问题。", true);
+    updateStatus("Please enter a question first.", true);
     return;
   }
 
-  setLoading(true, "正在拆解问题...");
+  setLoading(true, "Breaking the problem into steps...");
   summaryPanel.classList.add("hidden");
+  rewardBanner.classList.add("hidden");
 
   try {
-    const data = await postJson("/api/session", { question });
+    const payload = {
+      question,
+      ageGroup: ageGroupSelect.value,
+    };
+    if (state.userId) payload.userId = state.userId;
+
+    const data = await postJson("/api/session", payload);
     state.sessionId = data.sessionId;
     state.currentStep = data.currentStep;
     state.totalSteps = data.totalSteps;
     state.history = data.history || [];
 
-    renderSessionMeta(data.problemReframed, data.totalSteps);
+    renderSessionMeta(data.problemReframed, data.totalSteps, data.ageGroup);
     renderCurrentStep(data.currentStep, data.intro);
     renderHistory();
     answerForm.classList.remove("hidden");
-    updateStatus("第一步已经准备好了。");
+    updateStatus("The first step is ready.");
   } catch (error) {
     updateStatus(error.message, true);
   } finally {
@@ -49,11 +160,13 @@ answerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const answer = answerInput.value.trim();
   if (!answer || !state.sessionId) {
-    updateStatus("请先写下这一步的答案。", true);
+    updateStatus("Please write an answer for this step first.", true);
     return;
   }
 
-  setLoading(true, "正在判断这一步...");
+  setLoading(true, "Checking this step...");
+  rewardBanner.classList.add("hidden");
+
   try {
     const data = await postJson("/api/session/answer", {
       sessionId: state.sessionId,
@@ -63,18 +176,21 @@ answerForm.addEventListener("submit", async (event) => {
     state.history = data.history || state.history;
     renderHistory(data);
 
+    if (data.reward) showReward(data.reward);
+    if (data.reward && state.userId) refreshUserStats();
+
     if (data.status === "step_advanced") {
       state.currentStep = data.currentStep;
       renderCurrentStep(data.currentStep, data.message, data.miniExplanation);
       answerInput.value = "";
-      updateStatus("答对了，继续下一步。");
+      updateStatus("Nice work. Move on to the next step.");
       return;
     }
 
     if (data.status === "try_again") {
       state.currentStep = data.currentStep;
       renderCurrentStep(data.currentStep, data.message, data.miniExplanation, data.hint);
-      updateStatus("这一步还可以再想想。", true);
+      updateStatus("Try thinking about this step one more time.", true);
       return;
     }
 
@@ -82,7 +198,7 @@ answerForm.addEventListener("submit", async (event) => {
       answerForm.classList.add("hidden");
       renderCompletedState(data.message, data.miniExplanation);
       renderSummary(data.summary);
-      updateStatus("这道题已经完成。");
+      updateStatus("This problem is complete.");
     }
   } catch (error) {
     updateStatus(error.message, true);
@@ -91,10 +207,51 @@ answerForm.addEventListener("submit", async (event) => {
   }
 });
 
-function renderSessionMeta(problemReframed, totalSteps) {
+async function refreshUserStats() {
+  if (!state.userId) return;
+  try {
+    const data = await postJson("/api/user/stats", { userId: state.userId });
+    const user = data.user;
+    state.coins = user.coins;
+    state.streak = user.current_streak;
+    coinsDisplay.textContent = user.coins + " coins";
+    streakDisplay.textContent = user.current_streak + " streak";
+  } catch (_) { /* ignore */ }
+}
+
+// ---- Reward banner ----
+function showReward(reward) {
+  if (!reward || reward.type === "none") return;
+
+  let html = "";
+  if (reward.type === "correct") {
+    html += `<span class="reward-msg">${escapeHtml(reward.message)}</span>`;
+    if (reward.coinsEarned) html += ` <span class="reward-coins">+${reward.coinsEarned} coins</span>`;
+    if (reward.currentStreak) html += ` <span class="reward-streak">streak: ${reward.currentStreak}</span>`;
+    if (reward.streakMessage) html += `<br><span class="reward-streak-msg">${escapeHtml(reward.streakMessage)}</span>`;
+    if (reward.completionMessage) html += `<br><span class="reward-complete">${escapeHtml(reward.completionMessage)}</span>`;
+  } else if (reward.type === "encouragement") {
+    html += `<span class="reward-encourage">${escapeHtml(reward.message)}</span>`;
+  }
+
+  rewardBanner.innerHTML = html;
+  rewardBanner.className = "reward-banner " + reward.type;
+  rewardBanner.classList.remove("hidden");
+}
+
+// ---- Renders ----
+function renderSessionMeta(problemReframed, totalSteps, ageGroup) {
   sessionMeta.classList.remove("hidden");
+  const ageLabels = {
+    "5-7": "Early learners",
+    "8-10": "Elementary",
+    "11-14": "Middle school",
+    "15-18": "High school"
+  };
+  const ageLabel = ageLabels[ageGroup] || ageGroup;
   sessionMeta.innerHTML = `
-    <div class="meta-pill">总共 ${totalSteps} 步</div>
+    <div class="meta-pill">${totalSteps} steps total</div>
+    <div class="meta-pill age-pill">${escapeHtml(ageLabel)}</div>
     <p>${escapeHtml(problemReframed)}</p>
   `;
 }
@@ -102,21 +259,21 @@ function renderSessionMeta(problemReframed, totalSteps) {
 function renderCurrentStep(step, intro, explanation = "", hint = "") {
   currentStep.classList.remove("empty-state");
   currentStep.innerHTML = `
-    <div class="step-badge">第 ${step.stepNumber} / ${step.totalSteps} 步</div>
+    <div class="step-badge">Step ${step.stepNumber} / ${step.totalSteps}</div>
     <h2>${escapeHtml(step.title)}</h2>
     <p class="step-goal">${escapeHtml(step.goal)}</p>
     <p class="step-prompt">${escapeHtml(step.prompt)}</p>
     ${intro ? `<div class="bubble info">${escapeHtml(intro)}</div>` : ""}
     ${explanation ? `<div class="bubble explain">${escapeHtml(explanation)}</div>` : ""}
-    ${hint ? `<div class="bubble hint">提示：${escapeHtml(hint)}</div>` : ""}
+    ${hint ? `<div class="bubble hint">Hint: ${escapeHtml(hint)}</div>` : ""}
   `;
 }
 
 function renderCompletedState(message, explanation = "") {
   currentStep.innerHTML = `
-    <div class="step-badge complete">完成</div>
-    <h2>你已经走完整个思考流程</h2>
-    <div class="bubble info">${escapeHtml(message || "做得很好。")}</div>
+    <div class="step-badge complete">Complete</div>
+    <h2>You finished the full thinking journey</h2>
+    <div class="bubble info">${escapeHtml(message || "Well done.")}</div>
     ${
       explanation
         ? `<div class="bubble explain">${escapeHtml(explanation)}</div>`
@@ -128,7 +285,7 @@ function renderCompletedState(message, explanation = "") {
 function renderHistory(latestResponse) {
   if (!state.history.length) {
     timeline.innerHTML =
-      '<p class="empty-state">孩子的每一步尝试、提示和鼓励会显示在这里。</p>';
+      '<p class="empty-state">Each attempt, hint, and encouraging message will appear here.</p>';
     return;
   }
 
@@ -140,7 +297,7 @@ function renderHistory(latestResponse) {
       const toneClass = item.isCorrect ? "correct" : "retry";
       const suffix =
         index === state.history.length - 1 && latestHint
-          ? `<p class="timeline-hint">提示：${escapeHtml(latestHint)}</p>`
+          ? `<p class="timeline-hint">Hint: ${escapeHtml(latestHint)}</p>`
           : "";
       const extra =
         index === state.history.length - 1 && latestFeedback
@@ -148,7 +305,7 @@ function renderHistory(latestResponse) {
           : "";
       return `
         <article class="timeline-item ${toneClass}">
-          <p class="timeline-step">步骤 ${item.stepIndex + 1}</p>
+          <p class="timeline-step">Step ${item.stepIndex + 1}</p>
           <p class="timeline-answer">${escapeHtml(item.answer)}</p>
           ${extra}
           ${suffix}
@@ -165,8 +322,8 @@ function renderSummary(summary) {
       (item) => `
         <article class="recap-item">
           <h3>${escapeHtml(item.title)}</h3>
-          <p><strong>你的表现：</strong>${escapeHtml(item.learner_answered)}</p>
-          <p><strong>老师反馈：</strong>${escapeHtml(item.feedback)}</p>
+          <p><strong>Your work:</strong>${escapeHtml(item.learner_answered)}</p>
+          <p><strong>Tutor feedback:</strong>${escapeHtml(item.feedback)}</p>
         </article>
       `
     )
@@ -186,26 +343,27 @@ function renderSummary(summary) {
       <p>${escapeHtml(summary.celebration)}</p>
     </div>
     <div class="summary-answer">
-      <h3>完整答案</h3>
+      <h3>Complete answer</h3>
       <p>${escapeHtml(summary.final_answer)}</p>
     </div>
     <div class="summary-columns">
       <section>
-        <h3>这次做得好的地方</h3>
+        <h3>What went well</h3>
         <ul>${strengthsHtml}</ul>
       </section>
       <section>
-        <h3>下次可以继续加强</h3>
+        <h3>What to keep improving</h3>
         <ul>${tipsHtml}</ul>
       </section>
     </div>
     <div class="summary-recap">
-      <h3>步骤回顾</h3>
+      <h3>Step recap</h3>
       ${recapHtml}
     </div>
   `;
 }
 
+// ---- Utilities ----
 async function postJson(url, payload) {
   const response = await fetch(url, {
     method: "POST",
@@ -214,7 +372,7 @@ async function postJson(url, payload) {
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || "请求失败");
+    throw new Error(data.error || "Request failed");
   }
   return data;
 }
@@ -240,4 +398,3 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
-

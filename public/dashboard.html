@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Think Step by Step</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="dash-header">
+        <div class="dash-title">
+          <p class="eyebrow">Learning dashboard</p>
+          <h1>Your Progress</h1>
+        </div>
+        <a href="/" class="auth-btn secondary">Back to learning</a>
+      </header>
+
+      <!-- Not logged in state -->
+      <div id="notLoggedIn" class="card">
+        <p>Please <a href="/">log in</a> to see your dashboard.</p>
+      </div>
+
+      <!-- Dashboard content (hidden until logged in) -->
+      <div id="dashContent" class="hidden">
+        <!-- Stats overview -->
+        <section class="stats-grid">
+          <div class="stat-card card">
+            <p class="stat-label">Total Coins</p>
+            <p class="stat-value" id="statCoins">0</p>
+          </div>
+          <div class="stat-card card">
+            <p class="stat-label">Best Streak</p>
+            <p class="stat-value" id="statBestStreak">0</p>
+          </div>
+          <div class="stat-card card">
+            <p class="stat-label">Sessions Completed</p>
+            <p class="stat-value" id="statSessions">0</p>
+          </div>
+          <div class="stat-card card">
+            <p class="stat-label">Accuracy</p>
+            <p class="stat-value" id="statAccuracy">-</p>
+          </div>
+        </section>
+
+        <!-- Learning summary -->
+        <section class="card" id="summarySection">
+          <h2>Learning Insights</h2>
+          <p class="muted">AI-generated analysis of your learning patterns</p>
+          <button id="generateSummaryBtn" class="generate-btn">Generate Learning Summary</button>
+          <div id="summaryContent" class="hidden">
+            <div id="overallAssessment" class="bubble info"></div>
+            <div id="domainInsights" class="domain-insights"></div>
+            <div id="highLevelLessons"></div>
+            <div id="encouragementMsg" class="bubble info"></div>
+          </div>
+          <p id="summaryLoading" class="hidden muted">Analyzing your learning patterns...</p>
+        </section>
+
+        <!-- Leaderboard -->
+        <section class="card">
+          <h2>Leaderboard</h2>
+          <div id="leaderboard" class="leaderboard">
+            <p class="muted">Loading...</p>
+          </div>
+        </section>
+
+        <!-- Session history -->
+        <section class="card">
+          <h2>Recent Sessions</h2>
+          <div id="sessionHistory" class="session-history">
+            <p class="muted">Loading...</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const state = { userId: null };
+
+      async function postJson(url, payload) {
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Request failed");
+        return d;
+      }
+
+      async function getJson(url) {
+        const r = await fetch(url);
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Request failed");
+        return d;
+      }
+
+      function esc(v) {
+        return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+      }
+
+      async function init() {
+        const saved = localStorage.getItem("thinkstep_username");
+        if (!saved) return;
+
+        try {
+          const data = await postJson("/api/login", { username: saved });
+          state.userId = data.user.user_id;
+
+          document.getElementById("notLoggedIn").classList.add("hidden");
+          document.getElementById("dashContent").classList.remove("hidden");
+
+          await Promise.all([loadStats(), loadLeaderboard()]);
+        } catch (_) {}
+      }
+
+      async function loadStats() {
+        try {
+          const data = await postJson("/api/user/stats", { userId: state.userId });
+          const u = data.user;
+          document.getElementById("statCoins").textContent = u.coins;
+          document.getElementById("statBestStreak").textContent = u.best_streak;
+          document.getElementById("statSessions").textContent = u.sessions_completed;
+
+          const acc = u.total_steps_attempted > 0
+            ? Math.round((u.total_steps_correct / u.total_steps_attempted) * 100) + "%"
+            : "-";
+          document.getElementById("statAccuracy").textContent = acc;
+
+          // Render session history
+          const histEl = document.getElementById("sessionHistory");
+          if (data.sessions.length === 0) {
+            histEl.innerHTML = '<p class="muted">No sessions yet. Start learning!</p>';
+          } else {
+            histEl.innerHTML = data.sessions.map(s => `
+              <div class="history-item ${s.is_complete ? 'complete' : 'incomplete'}">
+                <p class="history-question">${esc(s.question)}</p>
+                <div class="history-meta">
+                  <span>${s.is_complete ? "Completed" : "In progress"}</span>
+                  <span>${s.total_steps} steps</span>
+                  <span>${s.coins_earned} coins</span>
+                  <span>${s.age_group}</span>
+                </div>
+              </div>
+            `).join("");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      async function loadLeaderboard() {
+        try {
+          const data = await getJson("/api/leaderboard");
+          const el = document.getElementById("leaderboard");
+          if (!data.leaderboard.length) {
+            el.innerHTML = '<p class="muted">No learners yet.</p>';
+            return;
+          }
+          el.innerHTML = `
+            <table class="lb-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Coins</th>
+                  <th>Best Streak</th>
+                  <th>Sessions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.leaderboard.map((u, i) => `
+                  <tr class="${u.user_id === state.userId ? 'lb-self' : ''}">
+                    <td class="lb-rank">${i + 1}</td>
+                    <td>${esc(u.display_name)}</td>
+                    <td>${u.coins}</td>
+                    <td>${u.best_streak}</td>
+                    <td>${u.sessions_completed}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      document.getElementById("generateSummaryBtn").addEventListener("click", async () => {
+        if (!state.userId) return;
+        const btn = document.getElementById("generateSummaryBtn");
+        const loading = document.getElementById("summaryLoading");
+        const content = document.getElementById("summaryContent");
+
+        btn.disabled = true;
+        loading.classList.remove("hidden");
+        content.classList.add("hidden");
+
+        try {
+          const data = await postJson("/api/user/summary", { userId: state.userId });
+
+          document.getElementById("overallAssessment").textContent = data.overall_assessment;
+
+          const insightsEl = document.getElementById("domainInsights");
+          if (data.domain_insights && data.domain_insights.length) {
+            insightsEl.innerHTML = "<h3>Domain Insights</h3>" + data.domain_insights.map(d => `
+              <div class="insight-card">
+                <h4>${esc(d.domain)}</h4>
+                <p>${esc(d.observation)}</p>
+                <p class="insight-suggestion">${esc(d.suggestion)}</p>
+              </div>
+            `).join("");
+          }
+
+          const lessonsEl = document.getElementById("highLevelLessons");
+          if (data.high_level_lessons && data.high_level_lessons.length) {
+            lessonsEl.innerHTML = "<h3>Key Lessons</h3><ul>" +
+              data.high_level_lessons.map(l => `<li>${esc(l)}</li>`).join("") + "</ul>";
+          }
+
+          document.getElementById("encouragementMsg").textContent = data.encouragement;
+
+          content.classList.remove("hidden");
+        } catch (e) {
+          alert("Could not generate summary: " + e.message);
+        } finally {
+          btn.disabled = false;
+          loading.classList.add("hidden");
+        }
+      });
+
+      init();
+    </script>
+  </body>
+</html>

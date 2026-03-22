@@ -1,43 +1,87 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>一步一步想一想</title>
+    <title>Think Step by Step</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <div class="page-shell">
+      <!-- Auth Bar -->
+      <div id="authBar" class="auth-bar">
+        <div id="loginView" class="auth-view">
+          <input type="text" id="usernameInput" placeholder="Username" class="auth-input" />
+          <button id="loginBtn" class="auth-btn">Log in</button>
+          <button id="showRegisterBtn" class="auth-btn secondary">Register</button>
+        </div>
+        <div id="registerView" class="auth-view hidden">
+          <input type="text" id="regUsername" placeholder="Username" class="auth-input" />
+          <input type="text" id="regDisplayName" placeholder="Display name" class="auth-input" />
+          <select id="regAgeGroup" class="auth-input">
+            <option value="5-7">Age 5-7 (Early learners)</option>
+            <option value="8-10" selected>Age 8-10 (Elementary)</option>
+            <option value="11-14">Age 11-14 (Middle school)</option>
+            <option value="15-18">Age 15-18 (High school)</option>
+          </select>
+          <button id="registerBtn" class="auth-btn">Register</button>
+          <button id="backToLoginBtn" class="auth-btn secondary">Back</button>
+        </div>
+        <div id="userView" class="auth-view hidden">
+          <div class="user-info">
+            <span class="user-greeting">Hello, <strong id="displayNameText"></strong></span>
+            <span class="user-coins" id="coinsDisplay">0 coins</span>
+            <span class="user-streak" id="streakDisplay">0 streak</span>
+          </div>
+          <div class="user-actions">
+            <a href="/dashboard" class="auth-btn secondary">Dashboard</a>
+            <button id="logoutBtn" class="auth-btn secondary">Log out</button>
+          </div>
+        </div>
+        <p id="authStatus" class="auth-status"></p>
+      </div>
+
       <header class="hero">
         <div class="hero-copy">
           <p class="eyebrow">Step-by-step tutor</p>
-          <h1>一步一步想一想</h1>
+          <h1>Think Step by Step</h1>
           <p class="lead">
-            把大问题拆成小台阶。孩子每答对一步，老师再带着继续；答错也不会直接给答案，而是用提示把思路慢慢点亮。
+            Turn big questions into small thinking steps. When a child gets one
+            step right, the tutor moves forward. When the answer is off, the app
+            gives hints instead of revealing everything at once.
           </p>
         </div>
         <div class="hero-card">
           <div class="spark spark-a"></div>
           <div class="spark spark-b"></div>
-          <p>适合问：</p>
+          <p>Great for questions like:</p>
           <ul>
-            <li>数学题怎么做？</li>
-            <li>作文题该怎么想？</li>
-            <li>科学问题为什么会这样？</li>
+            <li>How do I solve this math problem?</li>
+            <li>How should I plan this writing prompt?</li>
+            <li>Why does this science idea work this way?</li>
           </ul>
         </div>
       </header>
 
       <main class="workspace">
         <section class="ask-panel card">
-          <label for="questionInput">孩子想问什么？</label>
+          <label for="questionInput">What would the child like to ask?</label>
           <textarea
             id="questionInput"
-            placeholder="例如：小明有 12 颗糖，分给 3 个朋友，每人几颗？"
+            placeholder="Example: If Sam has 12 candies and shares them with 3 friends, how many does each friend get?"
           ></textarea>
+          <div class="age-selector">
+            <label for="ageGroupSelect">Learning level:</label>
+            <select id="ageGroupSelect">
+              <option value="5-7">Age 5-7 (Full scaffolding)</option>
+              <option value="8-10" selected>Age 8-10 (Partial scaffolding)</option>
+              <option value="11-14">Age 11-14 (Hint only)</option>
+              <option value="15-18">Age 15-18 (Challenge mode)</option>
+            </select>
+          </div>
           <div class="action-row">
-            <button id="startButton">开始拆解问题</button>
-            <p id="statusText" class="status-text">准备好后就可以开始。</p>
+            <button id="startButton">Start the guided steps</button>
+            <p id="statusText" class="status-text">Enter a question to begin.</p>
           </div>
         </section>
 
@@ -45,22 +89,24 @@
           <section class="lesson-panel card">
             <div id="sessionMeta" class="session-meta hidden"></div>
             <div id="currentStep" class="current-step empty-state">
-              输入一个问题后，这里会出现第一步引导。
+              The first guided step will appear here after you enter a question.
             </div>
+            <!-- Reward display -->
+            <div id="rewardBanner" class="reward-banner hidden"></div>
             <form id="answerForm" class="answer-form hidden">
-              <label for="answerInput">你的答案或想法</label>
+              <label for="answerInput">Your answer or idea</label>
               <textarea
                 id="answerInput"
-                placeholder="把你的中间步骤写出来，不用担心一次答不全。"
+                placeholder="Write the thinking for this step. It does not need to be perfect on the first try."
               ></textarea>
-              <button type="submit" id="answerButton">提交这一步</button>
+              <button type="submit" id="answerButton">Submit this step</button>
             </form>
           </section>
 
           <aside class="feedback-panel card">
-            <h2>学习轨迹</h2>
+            <h2>Learning timeline</h2>
             <div id="timeline" class="timeline">
-              <p class="empty-state">孩子的每一步尝试、提示和鼓励会显示在这里。</p>
+              <p class="empty-state">Each attempt, hint, and piece of encouragement will appear here.</p>
             </div>
           </aside>
         </section>
@@ -72,4 +118,3 @@
     <script src="/static/app.js"></script>
   </body>
 </html>
-
