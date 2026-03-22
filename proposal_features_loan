@@ -1,52 +1,59 @@
-🌈 Kid-Friendly Learning App
+# 🌈 Kid-Friendly Learning App
 
 An engaging educational app designed to make learning fun and positive for kids.
 
-Features
-Kid-friendly welcome page
-  - Bright colors, friendly fonts, simple icons
-  - Visually inviting and easy to navigate
+---
 
-Positive feedback for correct AND incorrect answers
-  - Displays learning progress in a fun and creative way (e.g., path, animated character, progress bar)
-    - (Incorrect Answers) Example messages:
-      - "Great try! Let's try this again."
-      - "Almost there! You’re getting closer!"
-      - "Nice effort! Learning takes time!"
-    - (Positive Answers) Example messages:
-        - "Well done!"
-        - "Great job! You’ve got this!"
-        - "You’re learning so fast!"
+## Features
+
+### Kid-Friendly Welcome Page
+- Bright colors, friendly fonts, simple icons
+- Visually inviting and easy to navigate
+
+### Positive Feedback for Correct AND Incorrect Answers
+- Displays learning progress in a fun and creative way (e.g., path, animated character, progress bar)
+
+**Example Messages for Incorrect Answers:**
+- "Great try! Let's try this again."
+- "Almost there! You’re getting closer!"
+- "Nice effort! Learning takes time!"
+
+**Example Messages for Correct Answers:**
+- "Well done!"
+- "Great job! You’ve got this!"
+- "You’re learning so fast!"
+
 - Avoid rewarding every correct answer with points or prizes
+- Focus on intrinsic motivation through affirmations
 
-- Focus on intrinsic motivation through affirmations:
-      - "Well done!"
-      - "Great job! You’ve got this!"
-      - "You’re learning so fast!"
+### Streak Counter (like Duolingo)
+- Track consecutive days of app usage
+- Example message: "You’re on a roll! Keep going!"
 
-Streak counter (like Duolingo)
-      - Track consecutive days of app usage
-      - "You’re on a roll! Keep going!"
+### Optional Notifications for Learning Reminders
+- Gentle, positive reminders to encourage continued learning
+- Example messages:
+  - "You’re doing great! Ready for today’s lesson?"
+  - "Let’s keep your streak going!"
+  - "Only a few minutes to finish today’s goal!"
 
-Optional notifications for learning reminders
-      - Gentle, positive reminders to encourage continued learning
-      - "You’re doing great! Ready for today’s lesson?"
-      - "Let’s keep your streak going!"
-      - "Only a few minutes to finish today’s goal!"
+---
 
-Design Principles
-      - Friendly, supportive tone throughout the app
-      - Encourage consistency without pressure
-      - Avoid over-reliance on rewards
-      - Focus on engagement through creativity and affirmation
+## Design Principles
+- Friendly, supportive tone throughout the app
+- Encourage consistency without pressure
+- Avoid over-reliance on rewards
+- Focus on engagement through creativity and affirmation
 
-Optional Features
-      - Milestone badges (not per-action rewards)
-      - Parental controls and progress reports
-      - Customizable avatars/themes for kids
+---
 
+## Optional Features
+- Milestone badges (not per-action rewards)
+- Parental controls and progress reports
+- Customizable avatars/themes for kids
 
-Disclaimer
-  - Example: "This app is designed to assist learning but is not a substitute for face-to-face interaction."
-  - Placement: footer, small text, or optional pop-up/modal
+---
 
+## Disclaimer
+- Example: "This app is designed to assist learning but is not a substitute for face-to-face interaction."
+- Placement: footer, small text, or optional pop-up/modal
