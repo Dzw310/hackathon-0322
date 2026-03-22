@@ -4,10 +4,45 @@ An engaging educational app designed to make learning fun and positive for kids.
 
 Features
 Kid-friendly welcome page
+  - Bright colors, friendly fonts, simple icons
+  - Visually inviting and easy to navigate
 Positive feedback for correct AND incorrect answers
-No over-rewarding system (healthy motivation)
+  - Displays learning progress in a fun and creative way (e.g., path, animated character, progress bar)
+    - (Incorrect Answers) Example messages:
+      - "Great try! Let's try this again."
+      - "Almost there! You’re getting closer!"
+      - "Nice effort! Learning takes time!"
+    - (Positive Answers) Example messages:
+        - "Well done!"
+        - "Great job! You’ve got this!"
+        - "You’re learning so fast!"
+- Avoid rewarding every correct answer with points or prizes
+- Focus on intrinsic motivation through affirmations:
+  - "Well done!"
+  - "Great job! You’ve got this!"
+  - "You’re learning so fast!"
 Streak counter (like Duolingo)
+    - Track consecutive days of app usage
+    - "You’re on a roll! Keep going!"
 Optional notifications for learning reminders
-Disclaimer
+  - Gentle, positive reminders to encourage continued learning
+  - "You’re doing great! Ready for today’s lesson?"
+  - "Let’s keep your streak going!"
+  - "Only a few minutes to finish today’s goal!"
 
-This app supports learning but does NOT replace teachers, parents, or real-world interaction.
+Design Principles
+  - Friendly, supportive tone throughout the app
+  - Encourage consistency without pressure
+  - Avoid over-reliance on rewards
+  - Focus on engagement through creativity and affirmation
+
+Optional Features
+  - Milestone badges (not per-action rewards)
+  - Parental controls and progress reports
+  - Customizable avatars/themes for kids
+
+
+Disclaimer
+  - Example: "This app is designed to assist learning but is not a substitute for face-to-face interaction."
+  - Placement: footer, small text, or optional pop-up/modal
+
