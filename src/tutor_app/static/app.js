@@ -3,8 +3,13 @@ const state = {
   currentStep: null,
   totalSteps: 0,
   history: [],
+  userId: null,
+  ageGroup: "8-10",
+  coins: 0,
+  streak: 0,
 };
 
+// DOM elements
 const questionInput = document.getElementById("questionInput");
 const startButton = document.getElementById("startButton");
 const statusText = document.getElementById("statusText");
@@ -15,7 +20,106 @@ const answerInput = document.getElementById("answerInput");
 const answerButton = document.getElementById("answerButton");
 const timeline = document.getElementById("timeline");
 const summaryPanel = document.getElementById("summaryPanel");
+const rewardBanner = document.getElementById("rewardBanner");
+const ageGroupSelect = document.getElementById("ageGroupSelect");
 
+// Auth elements
+const loginView = document.getElementById("loginView");
+const registerView = document.getElementById("registerView");
+const userView = document.getElementById("userView");
+const usernameInput = document.getElementById("usernameInput");
+const loginBtn = document.getElementById("loginBtn");
+const showRegisterBtn = document.getElementById("showRegisterBtn");
+const regUsername = document.getElementById("regUsername");
+const regDisplayName = document.getElementById("regDisplayName");
+const regAgeGroup = document.getElementById("regAgeGroup");
+const registerBtn = document.getElementById("registerBtn");
+const backToLoginBtn = document.getElementById("backToLoginBtn");
+const displayNameText = document.getElementById("displayNameText");
+const coinsDisplay = document.getElementById("coinsDisplay");
+const streakDisplay = document.getElementById("streakDisplay");
+const logoutBtn = document.getElementById("logoutBtn");
+const authStatus = document.getElementById("authStatus");
+
+// ---- Auth ----
+function showAuthStatus(msg, isError = false) {
+  authStatus.textContent = msg;
+  authStatus.className = "auth-status" + (isError ? " warning" : "");
+}
+
+function setLoggedIn(user) {
+  state.userId = user.user_id;
+  state.ageGroup = user.age_group;
+  state.coins = user.coins;
+  state.streak = user.current_streak;
+
+  displayNameText.textContent = user.display_name;
+  coinsDisplay.textContent = user.coins + " coins";
+  streakDisplay.textContent = user.current_streak + " streak";
+  ageGroupSelect.value = user.age_group;
+
+  loginView.classList.add("hidden");
+  registerView.classList.add("hidden");
+  userView.classList.remove("hidden");
+  showAuthStatus("");
+
+  localStorage.setItem("thinkstep_username", user.username);
+}
+
+function logout() {
+  state.userId = null;
+  state.coins = 0;
+  state.streak = 0;
+  loginView.classList.remove("hidden");
+  registerView.classList.add("hidden");
+  userView.classList.add("hidden");
+  localStorage.removeItem("thinkstep_username");
+}
+
+loginBtn.addEventListener("click", async () => {
+  const username = usernameInput.value.trim();
+  if (!username) { showAuthStatus("Enter a username.", true); return; }
+  try {
+    const data = await postJson("/api/login", { username });
+    setLoggedIn(data.user);
+  } catch (e) { showAuthStatus(e.message, true); }
+});
+
+showRegisterBtn.addEventListener("click", () => {
+  loginView.classList.add("hidden");
+  registerView.classList.remove("hidden");
+});
+
+backToLoginBtn.addEventListener("click", () => {
+  registerView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+});
+
+registerBtn.addEventListener("click", async () => {
+  const username = regUsername.value.trim();
+  const displayName = regDisplayName.value.trim();
+  const ageGroup = regAgeGroup.value;
+  if (!username || !displayName) { showAuthStatus("Fill in all fields.", true); return; }
+  try {
+    const data = await postJson("/api/register", { username, displayName, ageGroup });
+    setLoggedIn(data.user);
+  } catch (e) { showAuthStatus(e.message, true); }
+});
+
+logoutBtn.addEventListener("click", logout);
+
+// Auto-login from localStorage
+(async function autoLogin() {
+  const saved = localStorage.getItem("thinkstep_username");
+  if (saved) {
+    try {
+      const data = await postJson("/api/login", { username: saved });
+      setLoggedIn(data.user);
+    } catch (_) { /* ignore */ }
+  }
+})();
+
+// ---- Session ----
 startButton.addEventListener("click", async () => {
   const question = questionInput.value.trim();
   if (!question) {
@@ -25,15 +129,22 @@ startButton.addEventListener("click", async () => {
 
   setLoading(true, "Breaking the problem into steps...");
   summaryPanel.classList.add("hidden");
+  rewardBanner.classList.add("hidden");
 
   try {
-    const data = await postJson("/api/session", { question });
+    const payload = {
+      question,
+      ageGroup: ageGroupSelect.value,
+    };
+    if (state.userId) payload.userId = state.userId;
+
+    const data = await postJson("/api/session", payload);
     state.sessionId = data.sessionId;
     state.currentStep = data.currentStep;
     state.totalSteps = data.totalSteps;
     state.history = data.history || [];
 
-    renderSessionMeta(data.problemReframed, data.totalSteps);
+    renderSessionMeta(data.problemReframed, data.totalSteps, data.ageGroup);
     renderCurrentStep(data.currentStep, data.intro);
     renderHistory();
     answerForm.classList.remove("hidden");
@@ -54,6 +165,8 @@ answerForm.addEventListener("submit", async (event) => {
   }
 
   setLoading(true, "Checking this step...");
+  rewardBanner.classList.add("hidden");
+
   try {
     const data = await postJson("/api/session/answer", {
       sessionId: state.sessionId,
@@ -62,6 +175,9 @@ answerForm.addEventListener("submit", async (event) => {
 
     state.history = data.history || state.history;
     renderHistory(data);
+
+    if (data.reward) showReward(data.reward);
+    if (data.reward && state.userId) refreshUserStats();
 
     if (data.status === "step_advanced") {
       state.currentStep = data.currentStep;
@@ -91,10 +207,51 @@ answerForm.addEventListener("submit", async (event) => {
   }
 });
 
-function renderSessionMeta(problemReframed, totalSteps) {
+async function refreshUserStats() {
+  if (!state.userId) return;
+  try {
+    const data = await postJson("/api/user/stats", { userId: state.userId });
+    const user = data.user;
+    state.coins = user.coins;
+    state.streak = user.current_streak;
+    coinsDisplay.textContent = user.coins + " coins";
+    streakDisplay.textContent = user.current_streak + " streak";
+  } catch (_) { /* ignore */ }
+}
+
+// ---- Reward banner ----
+function showReward(reward) {
+  if (!reward || reward.type === "none") return;
+
+  let html = "";
+  if (reward.type === "correct") {
+    html += `<span class="reward-msg">${escapeHtml(reward.message)}</span>`;
+    if (reward.coinsEarned) html += ` <span class="reward-coins">+${reward.coinsEarned} coins</span>`;
+    if (reward.currentStreak) html += ` <span class="reward-streak">streak: ${reward.currentStreak}</span>`;
+    if (reward.streakMessage) html += `<br><span class="reward-streak-msg">${escapeHtml(reward.streakMessage)}</span>`;
+    if (reward.completionMessage) html += `<br><span class="reward-complete">${escapeHtml(reward.completionMessage)}</span>`;
+  } else if (reward.type === "encouragement") {
+    html += `<span class="reward-encourage">${escapeHtml(reward.message)}</span>`;
+  }
+
+  rewardBanner.innerHTML = html;
+  rewardBanner.className = "reward-banner " + reward.type;
+  rewardBanner.classList.remove("hidden");
+}
+
+// ---- Renders ----
+function renderSessionMeta(problemReframed, totalSteps, ageGroup) {
   sessionMeta.classList.remove("hidden");
+  const ageLabels = {
+    "5-7": "Early learners",
+    "8-10": "Elementary",
+    "11-14": "Middle school",
+    "15-18": "High school"
+  };
+  const ageLabel = ageLabels[ageGroup] || ageGroup;
   sessionMeta.innerHTML = `
     <div class="meta-pill">${totalSteps} steps total</div>
+    <div class="meta-pill age-pill">${escapeHtml(ageLabel)}</div>
     <p>${escapeHtml(problemReframed)}</p>
   `;
 }
@@ -206,6 +363,7 @@ function renderSummary(summary) {
   `;
 }
 
+// ---- Utilities ----
 async function postJson(url, payload) {
   const response = await fetch(url, {
     method: "POST",

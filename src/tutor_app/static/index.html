@@ -8,6 +8,39 @@
   </head>
   <body>
     <div class="page-shell">
+      <!-- Auth Bar -->
+      <div id="authBar" class="auth-bar">
+        <div id="loginView" class="auth-view">
+          <input type="text" id="usernameInput" placeholder="Username" class="auth-input" />
+          <button id="loginBtn" class="auth-btn">Log in</button>
+          <button id="showRegisterBtn" class="auth-btn secondary">Register</button>
+        </div>
+        <div id="registerView" class="auth-view hidden">
+          <input type="text" id="regUsername" placeholder="Username" class="auth-input" />
+          <input type="text" id="regDisplayName" placeholder="Display name" class="auth-input" />
+          <select id="regAgeGroup" class="auth-input">
+            <option value="5-7">Age 5-7 (Early learners)</option>
+            <option value="8-10" selected>Age 8-10 (Elementary)</option>
+            <option value="11-14">Age 11-14 (Middle school)</option>
+            <option value="15-18">Age 15-18 (High school)</option>
+          </select>
+          <button id="registerBtn" class="auth-btn">Register</button>
+          <button id="backToLoginBtn" class="auth-btn secondary">Back</button>
+        </div>
+        <div id="userView" class="auth-view hidden">
+          <div class="user-info">
+            <span class="user-greeting">Hello, <strong id="displayNameText"></strong></span>
+            <span class="user-coins" id="coinsDisplay">0 coins</span>
+            <span class="user-streak" id="streakDisplay">0 streak</span>
+          </div>
+          <div class="user-actions">
+            <a href="/dashboard" class="auth-btn secondary">Dashboard</a>
+            <button id="logoutBtn" class="auth-btn secondary">Log out</button>
+          </div>
+        </div>
+        <p id="authStatus" class="auth-status"></p>
+      </div>
+
       <header class="hero">
         <div class="hero-copy">
           <p class="eyebrow">Step-by-step tutor</p>
@@ -37,6 +70,15 @@
             id="questionInput"
             placeholder="Example: If Sam has 12 candies and shares them with 3 friends, how many does each friend get?"
           ></textarea>
+          <div class="age-selector">
+            <label for="ageGroupSelect">Learning level:</label>
+            <select id="ageGroupSelect">
+              <option value="5-7">Age 5-7 (Full scaffolding)</option>
+              <option value="8-10" selected>Age 8-10 (Partial scaffolding)</option>
+              <option value="11-14">Age 11-14 (Hint only)</option>
+              <option value="15-18">Age 15-18 (Challenge mode)</option>
+            </select>
+          </div>
           <div class="action-row">
             <button id="startButton">Start the guided steps</button>
             <p id="statusText" class="status-text">Enter a question to begin.</p>
@@ -49,6 +91,8 @@
             <div id="currentStep" class="current-step empty-state">
               The first guided step will appear here after you enter a question.
             </div>
+            <!-- Reward display -->
+            <div id="rewardBanner" class="reward-banner hidden"></div>
             <form id="answerForm" class="answer-form hidden">
               <label for="answerInput">Your answer or idea</label>
               <textarea

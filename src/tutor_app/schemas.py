@@ -83,6 +83,43 @@ STEP_EVALUATION_SCHEMA = {
 }
 
 
+LEARNING_SUMMARY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "overall_assessment": {"type": "string"},
+        "domain_insights": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "domain": {"type": "string"},
+                    "observation": {"type": "string"},
+                    "suggestion": {"type": "string"},
+                },
+                "required": ["domain", "observation", "suggestion"],
+                "additionalProperties": False,
+            },
+        },
+        "high_level_lessons": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 5,
+            "items": {"type": "string"},
+        },
+        "encouragement": {"type": "string"},
+    },
+    "required": [
+        "overall_assessment",
+        "domain_insights",
+        "high_level_lessons",
+        "encouragement",
+    ],
+    "additionalProperties": False,
+}
+
+
 FINAL_FEEDBACK_SCHEMA = {
     "type": "object",
     "properties": {

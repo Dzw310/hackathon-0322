@@ -47,6 +47,8 @@ class TutorSession:
     history: list[AttemptRecord] = field(default_factory=list)
     is_complete: bool = False
     final_feedback: dict | None = None
+    user_id: str | None = None
+    age_group: str = "8-10"
 
     def attempts_for_step(self, step_index: int) -> int:
         return sum(1 for item in self.history if item.step_index == step_index)

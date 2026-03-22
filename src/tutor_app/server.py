@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from tutor_app.config import load_local_env
+from tutor_app.content_filter import ContentFilterError
 from tutor_app.openai_client import OpenAIClientError
 from tutor_app.tutor_service import TutorService
 
@@ -24,8 +25,15 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         if parsed.path == "/":
             self._serve_file(STATIC_DIR / "index.html")
             return
+        if parsed.path == "/dashboard":
+            self._serve_file(STATIC_DIR / "dashboard.html")
+            return
         if parsed.path == "/api/health":
             self._send_json(HTTPStatus.OK, {"status": "ok"})
+            return
+        if parsed.path == "/api/leaderboard":
+            result = self._service().get_leaderboard()
+            self._send_json(HTTPStatus.OK, {"leaderboard": result})
             return
         if parsed.path.startswith("/static/"):
             relative_path = parsed.path.removeprefix("/static/")
@@ -37,10 +45,32 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             payload = self._read_json()
+
+            if parsed.path == "/api/register":
+                result = self._service().register_user(
+                    username=payload.get("username", ""),
+                    display_name=payload.get("displayName", ""),
+                    age_group=payload.get("ageGroup", "8-10"),
+                )
+                self._send_json(HTTPStatus.OK, {"user": result})
+                return
+
+            if parsed.path == "/api/login":
+                result = self._service().login_user(
+                    username=payload.get("username", ""),
+                )
+                self._send_json(HTTPStatus.OK, {"user": result})
+                return
+
             if parsed.path == "/api/session":
-                result = self._service().create_session(payload.get("question", ""))
+                result = self._service().create_session(
+                    question=payload.get("question", ""),
+                    user_id=payload.get("userId"),
+                    age_group=payload.get("ageGroup", "8-10"),
+                )
                 self._send_json(HTTPStatus.OK, result)
                 return
+
             if parsed.path == "/api/session/answer":
                 result = self._service().submit_answer(
                     payload.get("sessionId", ""),
@@ -48,7 +78,24 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 )
                 self._send_json(HTTPStatus.OK, result)
                 return
+
+            if parsed.path == "/api/user/stats":
+                result = self._service().get_user_stats(
+                    payload.get("userId", ""),
+                )
+                self._send_json(HTTPStatus.OK, result)
+                return
+
+            if parsed.path == "/api/user/summary":
+                result = self._service().generate_learning_summary(
+                    payload.get("userId", ""),
+                )
+                self._send_json(HTTPStatus.OK, result)
+                return
+
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+        except ContentFilterError as exc:
+            self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc), "blocked": True})
         except ValueError as exc:
             self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
         except KeyError as exc:
