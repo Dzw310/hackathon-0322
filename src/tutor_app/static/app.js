@@ -179,11 +179,19 @@ answerForm.addEventListener("submit", async (event) => {
     if (data.reward) showReward(data.reward);
     if (data.reward && state.userId) refreshUserStats();
 
+    if (data.autoRevealed) {
+      showRevealLesson(data.lesson, data.message);
+    }
+
     if (data.status === "step_advanced") {
       state.currentStep = data.currentStep;
-      renderCurrentStep(data.currentStep, data.message, data.miniExplanation);
+      if (!data.autoRevealed) {
+        renderCurrentStep(data.currentStep, data.message, data.miniExplanation);
+      }
       answerInput.value = "";
-      updateStatus("Nice work. Move on to the next step.");
+      updateStatus(data.autoRevealed
+        ? "The answer was revealed. Review the lesson, then continue."
+        : "Nice work. Move on to the next step.");
       return;
     }
 
@@ -236,6 +244,27 @@ function showReward(reward) {
 
   rewardBanner.innerHTML = html;
   rewardBanner.className = "reward-banner " + reward.type;
+  rewardBanner.classList.remove("hidden");
+}
+
+// ---- Auto-reveal lesson ----
+function showRevealLesson(lesson, message) {
+  if (!lesson) return;
+  rewardBanner.innerHTML = `
+    <div class="reveal-lesson">
+      <p class="reveal-title">Let's learn from this step</p>
+      <p class="reveal-message">${escapeHtml(message)}</p>
+      <div class="reveal-answer">
+        <strong>Answer:</strong> ${escapeHtml(lesson.answer)}
+      </div>
+      <div class="reveal-explanation">
+        <strong>Why:</strong> ${escapeHtml(lesson.explanation)}
+      </div>
+      ${lesson.tip ? `<div class="reveal-tip"><strong>Tip:</strong> ${escapeHtml(lesson.tip)}</div>` : ""}
+      <p class="reveal-encouragement">${escapeHtml(lesson.encouragement)}</p>
+    </div>
+  `;
+  rewardBanner.className = "reward-banner revealed";
   rewardBanner.classList.remove("hidden");
 }
 

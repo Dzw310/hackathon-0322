@@ -5,15 +5,13 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-import psycopg2
-import psycopg2.extras
-
-
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _conn() -> psycopg2.extensions.connection:
+def _conn():
+    import psycopg2
+    import psycopg2.extras
     url = os.environ["DATABASE_URL"]
     conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
     conn.autocommit = False

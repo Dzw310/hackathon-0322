@@ -424,6 +424,55 @@ button:disabled {
   font-size: 1rem;
 }
 
+/* ---- Auto-reveal lesson ---- */
+.reward-banner.revealed {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 2px solid #42a5f5;
+  color: var(--ink);
+}
+
+.reveal-lesson {
+  display: grid;
+  gap: 8px;
+}
+
+.reveal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1565c0;
+}
+
+.reveal-message {
+  margin: 0;
+}
+
+.reveal-answer {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(66, 165, 245, 0.3);
+}
+
+.reveal-explanation {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.reveal-tip {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff8e1;
+  font-size: 0.95rem;
+}
+
+.reveal-encouragement {
+  margin: 4px 0 0;
+  font-style: italic;
+  color: #2e7d32;
+}
+
 @keyframes reward-pop {
   0% { transform: scale(0.9); opacity: 0; }
   50% { transform: scale(1.03); }

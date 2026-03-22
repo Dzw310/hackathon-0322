@@ -226,7 +226,21 @@ class TutorService:
         )
 
         is_correct = evaluation["is_correct"]
-        reward = self._calculate_reward(session, is_correct)
+
+        # Auto-reveal: after 3 consecutive failures on the same step,
+        # reveal the answer, give encouragement + a lesson, and move on.
+        max_failures = 3
+        consecutive_failures = attempt_count + (0 if is_correct else 1)
+        auto_revealed = not is_correct and consecutive_failures >= max_failures
+
+        if auto_revealed:
+            is_correct = True  # treat as correct so we advance
+            evaluation["feedback_to_child"] = (
+                f"No worries — this was a tough one! The answer is: {step.ideal_student_answer}."
+            )
+            evaluation["mini_explanation"] = step.mini_explanation
+
+        reward = self._calculate_reward(session, is_correct and not auto_revealed)
 
         if session.user_id:
             self._db.record_step_attempt(
@@ -235,15 +249,15 @@ class TutorService:
                 step_index=step_index,
                 step_title=step.title,
                 answer=clean_answer,
-                is_correct=is_correct,
+                is_correct=is_correct and not auto_revealed,
                 attempt_number=attempt_count + 1,
                 feedback=evaluation["feedback_to_child"],
             )
-            self._db.increment_stats(session.user_id, is_correct)
-            self._db.update_streak(session.user_id, is_correct)
+            self._db.increment_stats(session.user_id, is_correct and not auto_revealed)
+            self._db.update_streak(session.user_id, is_correct and not auto_revealed)
 
         if is_correct:
-            if session.user_id:
+            if session.user_id and not auto_revealed:
                 config = AGE_GROUP_CONFIG[session.age_group]
                 self._db.add_coins(session.user_id, config["coins_per_correct"])
 
@@ -255,7 +269,8 @@ class TutorService:
 
                 if session.user_id:
                     config = AGE_GROUP_CONFIG[session.age_group]
-                    self._db.add_coins(session.user_id, config["coins_completion_bonus"])
+                    if not auto_revealed:
+                        self._db.add_coins(session.user_id, config["coins_completion_bonus"])
                     self._db.increment_sessions_completed(session.user_id)
                     steps_first_try = self._count_first_try_correct(session)
                     self._db.record_session_complete(
@@ -267,7 +282,7 @@ class TutorService:
                     )
 
                 self._store.set(session)
-                return {
+                result = {
                     "status": "completed",
                     "sessionId": session.session_id,
                     "message": evaluation["feedback_to_child"],
@@ -276,11 +291,15 @@ class TutorService:
                     "history": self._serialize_history(session),
                     "reward": reward,
                 }
+                if auto_revealed:
+                    result["autoRevealed"] = True
+                    result["lesson"] = self._build_reveal_lesson(step)
+                return result
 
             next_index = session.current_step_index
             next_step = session.plan.steps[next_index]
             self._store.set(session)
-            return {
+            result = {
                 "status": "step_advanced",
                 "sessionId": session.session_id,
                 "message": evaluation["feedback_to_child"],
@@ -292,6 +311,10 @@ class TutorService:
                 "history": self._serialize_history(session),
                 "reward": reward,
             }
+            if auto_revealed:
+                result["autoRevealed"] = True
+                result["lesson"] = self._build_reveal_lesson(step)
+            return result
 
         self._store.set(session)
         return {
@@ -425,6 +448,18 @@ class TutorService:
             reward["coinsEarned"] += config["coins_completion_bonus"]
 
         return reward
+
+    def _build_reveal_lesson(self, step: TutorStep) -> dict[str, str]:
+        return {
+            "answer": step.ideal_student_answer,
+            "explanation": step.mini_explanation,
+            "encouragement": (
+                "It's completely okay to need help — that's how learning works! "
+                "Now that you've seen the answer, try to understand WHY it's correct. "
+                "Next time you see a similar problem, you'll be ready."
+            ),
+            "tip": step.hint_ladder[-1] if step.hint_ladder else "",
+        }
 
     def _count_first_try_correct(self, session: TutorSession) -> int:
         step_first_attempts: dict[int, bool] = {}
