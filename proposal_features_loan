@@ -1,0 +1,56 @@
+# 🌈 Kid-Friendly Learning App
+
+![Status](https://img.shields.io/badge/status-in%20progress-yellow)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
+An engaging, child-focused educational app designed to make learning fun, supportive, and healthy.
+
+---
+
+## 🎥 Demo (Coming Soon)
+_Add screenshots or a demo link here_
+
+---
+
+## 📌 Features
+
+### 🎨 Welcome Page
+- Bright, kid-friendly UI
+- Fun, engaging visuals
+- Optional real-world interaction disclaimer
+
+### 💬 Positive Feedback System
+- Encouraging responses for incorrect answers
+- Positive affirmations for correct answers
+- No over-rewarding (avoids unhealthy feedback loops)
+
+### 🔥 Streak Counter
+- Tracks daily progress
+- Encourages consistency without pressure
+
+### 🔔 Notifications (Planned)
+- Friendly learning reminders
+- Focused on motivation, not stress
+
+---
+
+## ⚖️ Disclaimer
+This app is a **supplemental learning tool** and does not replace:
+- Teachers
+- Parents
+- Real-world interaction
+
+---
+
+## 🛠️ Tech Stack
+- HTML, CSS, JavaScript *(or React if you upgrade later)*
+
+---
+
+## 🚀 Getting Started
+
+```bash
+git clone https://github.com/your-username/kid-learning-app.git
+cd kid-learning-app
+This app is a **supplemental learning tool**.  
+It does **not replace real-world teaching, interaction, or parental guidance**.
