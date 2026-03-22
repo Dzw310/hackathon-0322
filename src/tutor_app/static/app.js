@@ -394,12 +394,25 @@ function renderSummary(summary) {
 
 // ---- Utilities ----
 async function postJson(url, payload) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (networkErr) {
+    throw new Error("Network error — please check your connection and try again.");
+  }
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (_) {
+    throw new Error("The server returned an unexpected response. Please try again.");
+  }
+
   if (!response.ok) {
     throw new Error(data.error || "Request failed");
   }
