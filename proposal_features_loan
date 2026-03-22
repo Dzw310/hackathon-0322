@@ -6,6 +6,7 @@ Features
 Kid-friendly welcome page
   - Bright colors, friendly fonts, simple icons
   - Visually inviting and easy to navigate
+
 Positive feedback for correct AND incorrect answers
   - Displays learning progress in a fun and creative way (e.g., path, animated character, progress bar)
     - (Incorrect Answers) Example messages:
@@ -17,29 +18,32 @@ Positive feedback for correct AND incorrect answers
         - "Great job! You’ve got this!"
         - "You’re learning so fast!"
 - Avoid rewarding every correct answer with points or prizes
+
 - Focus on intrinsic motivation through affirmations:
-  - "Well done!"
-  - "Great job! You’ve got this!"
-  - "You’re learning so fast!"
+      - "Well done!"
+      - "Great job! You’ve got this!"
+      - "You’re learning so fast!"
+
 Streak counter (like Duolingo)
-    - Track consecutive days of app usage
-    - "You’re on a roll! Keep going!"
+      - Track consecutive days of app usage
+      - "You’re on a roll! Keep going!"
+
 Optional notifications for learning reminders
-  - Gentle, positive reminders to encourage continued learning
-  - "You’re doing great! Ready for today’s lesson?"
-  - "Let’s keep your streak going!"
-  - "Only a few minutes to finish today’s goal!"
+      - Gentle, positive reminders to encourage continued learning
+      - "You’re doing great! Ready for today’s lesson?"
+      - "Let’s keep your streak going!"
+      - "Only a few minutes to finish today’s goal!"
 
 Design Principles
-  - Friendly, supportive tone throughout the app
-  - Encourage consistency without pressure
-  - Avoid over-reliance on rewards
-  - Focus on engagement through creativity and affirmation
+      - Friendly, supportive tone throughout the app
+      - Encourage consistency without pressure
+      - Avoid over-reliance on rewards
+      - Focus on engagement through creativity and affirmation
 
 Optional Features
-  - Milestone badges (not per-action rewards)
-  - Parental controls and progress reports
-  - Customizable avatars/themes for kids
+      - Milestone badges (not per-action rewards)
+      - Parental controls and progress reports
+      - Customizable avatars/themes for kids
 
 
 Disclaimer
