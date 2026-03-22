@@ -99,6 +99,11 @@ AGE_GROUP_CONFIG = {
     },
 }
 
+COIN_COSTS = {
+    "buy_hint": 5,
+    "buy_answer": 15,
+}
+
 REWARD_MESSAGES = {
     "correct": [
         "Well done!",
@@ -224,18 +229,29 @@ class TutorService:
 
         is_correct = evaluation["is_correct"]
 
-        # Auto-reveal: after 3 consecutive failures on the same step,
-        # reveal the answer, give encouragement + a lesson, and move on.
+        # After 3 consecutive failures on the same step:
+        # - If user has coins, offer to buy the answer
+        # - If user has no coins (or no account), auto-reveal for free
         max_failures = 3
         consecutive_failures = attempt_count + (0 if is_correct else 1)
-        auto_revealed = not is_correct and consecutive_failures >= max_failures
+        offer_buy = False
+        auto_revealed = False
 
-        if auto_revealed:
-            is_correct = True  # treat as correct so we advance
-            evaluation["feedback_to_child"] = (
-                f"No worries — this was a tough one! The answer is: {step.ideal_student_answer}."
-            )
-            evaluation["mini_explanation"] = step.mini_explanation
+        if not is_correct and consecutive_failures >= max_failures:
+            has_coins = False
+            if session.user_id:
+                user = self._db.get_user(session.user_id)
+                has_coins = user is not None and user["coins"] >= COIN_COSTS["buy_answer"]
+
+            if has_coins:
+                offer_buy = True  # frontend will show "spend coins" option
+            else:
+                auto_revealed = True
+                is_correct = True
+                evaluation["feedback_to_child"] = (
+                    f"No worries — this was a tough one! The answer is: {step.ideal_student_answer}."
+                )
+                evaluation["mini_explanation"] = step.mini_explanation
 
         reward = self._calculate_reward(session, is_correct and not auto_revealed)
 
@@ -314,7 +330,7 @@ class TutorService:
             return result
 
         self._store.set(session)
-        return {
+        result = {
             "status": "try_again",
             "sessionId": session.session_id,
             "message": evaluation["feedback_to_child"],
@@ -324,6 +340,130 @@ class TutorService:
             "currentStep": self._serialize_step(step, step_index, len(session.plan.steps)),
             "history": self._serialize_history(session),
             "reward": reward,
+        }
+        if offer_buy:
+            result["offerBuy"] = True
+            result["buyAnswerCost"] = COIN_COSTS["buy_answer"]
+            result["buyHintCost"] = COIN_COSTS["buy_hint"]
+        return result
+
+    def buy_hint(self, session_id: str, user_id: str) -> dict[str, Any]:
+        """Spend coins to get the next hint for the current step."""
+        session = self._get_session(session_id)
+        if session.is_complete:
+            raise ValueError("This session is already complete.")
+
+        user = self._db.get_user(user_id)
+        if not user:
+            raise KeyError("User not found.")
+
+        cost = COIN_COSTS["buy_hint"]
+        if user["coins"] < cost:
+            raise ValueError(f"Not enough coins. You need {cost} coins but have {user['coins']}.")
+
+        step = session.plan.steps[session.current_step_index]
+        attempt_count = session.attempts_for_step(session.current_step_index)
+        hint_index = min(attempt_count, len(step.hint_ladder) - 1)
+        hint = step.hint_ladder[hint_index]
+
+        self._db.add_coins(user_id, -cost)
+        updated_user = self._db.get_user(user_id)
+
+        return {
+            "hint": hint,
+            "coinsSpent": cost,
+            "coinsRemaining": updated_user["coins"] if updated_user else 0,
+        }
+
+    def buy_answer(self, session_id: str, user_id: str) -> dict[str, Any]:
+        """Spend coins to reveal the answer and advance to the next step."""
+        session = self._get_session(session_id)
+        if session.is_complete:
+            raise ValueError("This session is already complete.")
+
+        user = self._db.get_user(user_id)
+        if not user:
+            raise KeyError("User not found.")
+
+        cost = COIN_COSTS["buy_answer"]
+        if user["coins"] < cost:
+            raise ValueError(f"Not enough coins. You need {cost} coins but have {user['coins']}.")
+
+        step_index = session.current_step_index
+        step = session.plan.steps[step_index]
+
+        # Deduct coins
+        self._db.add_coins(user_id, -cost)
+
+        # Record as a purchased reveal (not counted as correct)
+        session.history.append(
+            AttemptRecord(
+                step_index=step_index,
+                answer="[Used coins to reveal answer]",
+                is_correct=False,
+                feedback=f"Answer revealed: {step.ideal_student_answer}",
+                hint="",
+            )
+        )
+
+        if user_id:
+            self._db.record_step_attempt(
+                session_id=session.session_id,
+                user_id=user_id,
+                step_index=step_index,
+                step_title=step.title,
+                answer="[Used coins to reveal answer]",
+                is_correct=False,
+                attempt_number=session.attempts_for_step(step_index),
+                feedback="Purchased answer reveal",
+            )
+
+        # Advance to next step
+        session.current_step_index += 1
+        lesson = self._build_reveal_lesson(step)
+
+        if session.current_step_index >= len(session.plan.steps):
+            session.is_complete = True
+            summary = self._generate_final_feedback(session)
+            session.final_feedback = summary
+
+            if user_id:
+                self._db.increment_sessions_completed(user_id)
+                steps_first_try = self._count_first_try_correct(session)
+                self._db.record_session_complete(
+                    session_id=session.session_id,
+                    steps_correct_first_try=steps_first_try,
+                    total_attempts=len(session.history),
+                    coins_earned=0,
+                )
+
+            self._store.set(session)
+            updated_user = self._db.get_user(user_id)
+            return {
+                "status": "completed",
+                "sessionId": session.session_id,
+                "message": f"Answer revealed: {step.ideal_student_answer}",
+                "lesson": lesson,
+                "summary": summary,
+                "history": self._serialize_history(session),
+                "coinsSpent": cost,
+                "coinsRemaining": updated_user["coins"] if updated_user else 0,
+            }
+
+        next_index = session.current_step_index
+        next_step = session.plan.steps[next_index]
+        self._store.set(session)
+        updated_user = self._db.get_user(user_id)
+        return {
+            "status": "step_advanced",
+            "sessionId": session.session_id,
+            "message": f"Answer revealed: {step.ideal_student_answer}",
+            "lesson": lesson,
+            "currentStepIndex": next_index,
+            "currentStep": self._serialize_step(next_step, next_index, len(session.plan.steps)),
+            "history": self._serialize_history(session),
+            "coinsSpent": cost,
+            "coinsRemaining": updated_user["coins"] if updated_user else 0,
         }
 
     def get_leaderboard(self) -> list[dict[str, Any]]:

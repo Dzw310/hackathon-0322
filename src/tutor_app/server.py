@@ -79,6 +79,22 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.OK, result)
                 return
 
+            if parsed.path == "/api/session/buy-hint":
+                result = self._service().buy_hint(
+                    payload.get("sessionId", ""),
+                    payload.get("userId", ""),
+                )
+                self._send_json(HTTPStatus.OK, result)
+                return
+
+            if parsed.path == "/api/session/buy-answer":
+                result = self._service().buy_answer(
+                    payload.get("sessionId", ""),
+                    payload.get("userId", ""),
+                )
+                self._send_json(HTTPStatus.OK, result)
+                return
+
             if parsed.path == "/api/user/stats":
                 result = self._service().get_user_stats(
                     payload.get("userId", ""),

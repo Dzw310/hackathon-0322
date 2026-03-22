@@ -545,6 +545,151 @@ button:disabled {
   gap: 14px;
 }
 
+/* ---- Step Transition Overlay ---- */
+.step-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius);
+  animation: transition-in 400ms ease;
+}
+
+.step-transition.fade-out {
+  animation: transition-out 300ms ease forwards;
+}
+
+.transition-content {
+  text-align: center;
+  padding: 30px;
+}
+
+.transition-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #ffb15c 100%);
+  color: white;
+  font-size: 2rem;
+  font-weight: 800;
+  font-family: "Georgia", "Palatino Linotype", serif;
+  box-shadow: 0 8px 24px rgba(242, 107, 29, 0.3);
+  animation: step-number-pop 500ms ease;
+}
+
+.transition-icon {
+  font-size: 3rem;
+  animation: step-number-pop 500ms ease;
+}
+
+.transition-title {
+  margin: 14px 0 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.transition-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.transition-progress-bar {
+  width: 200px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(24, 49, 83, 0.1);
+  margin: 14px auto 0;
+  overflow: hidden;
+}
+
+.transition-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--mint) 100%);
+  transition: width 400ms ease;
+}
+
+@keyframes transition-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes transition-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.02); }
+}
+
+@keyframes step-number-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---- Buy Options Bar ---- */
+.buy-options-bar {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+  border: 2px solid #ffc107;
+  animation: reward-pop 400ms ease;
+}
+
+.buy-title {
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: #e65100;
+}
+
+.buy-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.buy-btn {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.buy-btn.hint-buy {
+  background: linear-gradient(135deg, var(--sky) 0%, #b3d9ff 100%);
+  color: var(--ink);
+}
+
+.buy-btn.answer-buy {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+  color: #5a3e00;
+}
+
+.buy-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.buy-balance {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.purchased-hint {
+  border: 2px dashed #42a5f5;
+  background: #e3f2fd;
+}
+
 /* ---- Dashboard ---- */
 .dash-header {
   display: flex;

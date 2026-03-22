@@ -7,6 +7,7 @@ const state = {
   ageGroup: "8-10",
   coins: 0,
   streak: 0,
+  previousStepNumber: 0,
 };
 
 // DOM elements
@@ -143,10 +144,12 @@ startButton.addEventListener("click", async () => {
     state.currentStep = data.currentStep;
     state.totalSteps = data.totalSteps;
     state.history = data.history || [];
+    state.previousStepNumber = 0;
 
     renderSessionMeta(data.problemReframed, data.totalSteps, data.ageGroup);
-    renderCurrentStep(data.currentStep, data.intro);
-    renderHistory();
+    showStepTransition(1, data.totalSteps, () => {
+      renderCurrentStep(data.currentStep, data.intro);
+    });
     answerForm.classList.remove("hidden");
     updateStatus("The first step is ready.");
   } catch (error) {
@@ -185,10 +188,15 @@ answerForm.addEventListener("submit", async (event) => {
 
     if (data.status === "step_advanced") {
       state.currentStep = data.currentStep;
-      if (!data.autoRevealed) {
-        renderCurrentStep(data.currentStep, data.message, data.miniExplanation);
-      }
       answerInput.value = "";
+
+      const fromStep = data.currentStepIndex; // 0-indexed, this is the NEW step
+      showStepTransition(data.currentStep.stepNumber, data.currentStep.totalSteps, () => {
+        if (!data.autoRevealed) {
+          renderCurrentStep(data.currentStep, data.message, data.miniExplanation);
+        }
+      });
+
       updateStatus(data.autoRevealed
         ? "The answer was revealed. Review the lesson, then continue."
         : "Nice work. Move on to the next step.");
@@ -198,14 +206,21 @@ answerForm.addEventListener("submit", async (event) => {
     if (data.status === "try_again") {
       state.currentStep = data.currentStep;
       renderCurrentStep(data.currentStep, data.message, data.miniExplanation, data.hint);
+
+      if (data.offerBuy) {
+        showBuyOptions(data.buyHintCost, data.buyAnswerCost);
+      }
+
       updateStatus("Try thinking about this step one more time.", true);
       return;
     }
 
     if (data.status === "completed") {
       answerForm.classList.add("hidden");
-      renderCompletedState(data.message, data.miniExplanation);
-      renderSummary(data.summary);
+      showStepTransition("done", state.totalSteps, () => {
+        renderCompletedState(data.message, data.miniExplanation);
+        renderSummary(data.summary);
+      });
       updateStatus("This problem is complete.");
     }
   } catch (error) {
@@ -227,25 +242,135 @@ async function refreshUserStats() {
   } catch (_) { /* ignore */ }
 }
 
-// ---- Reward banner ----
-function showReward(reward) {
-  if (!reward || reward.type === "none") return;
+// ---- Step transition ----
+function showStepTransition(stepNumber, totalSteps, callback) {
+  const overlay = document.createElement("div");
+  overlay.className = "step-transition";
 
-  let html = "";
-  if (reward.type === "correct") {
-    html += `<span class="reward-msg">${escapeHtml(reward.message)}</span>`;
-    if (reward.coinsEarned) html += ` <span class="reward-coins">+${reward.coinsEarned} coins</span>`;
-    if (reward.currentStreak) html += ` <span class="reward-streak">streak: ${reward.currentStreak}</span>`;
-    if (reward.streakMessage) html += `<br><span class="reward-streak-msg">${escapeHtml(reward.streakMessage)}</span>`;
-    if (reward.completionMessage) html += `<br><span class="reward-complete">${escapeHtml(reward.completionMessage)}</span>`;
-  } else if (reward.type === "encouragement") {
-    html += `<span class="reward-encourage">${escapeHtml(reward.message)}</span>`;
+  if (stepNumber === "done") {
+    overlay.innerHTML = `
+      <div class="transition-content">
+        <div class="transition-icon">&#127942;</div>
+        <p class="transition-title">All steps complete!</p>
+        <p class="transition-sub">Let's see how you did</p>
+      </div>
+    `;
+  } else {
+    const progress = Math.round((stepNumber / totalSteps) * 100);
+    overlay.innerHTML = `
+      <div class="transition-content">
+        <div class="transition-step-number">${stepNumber}</div>
+        <p class="transition-title">Step ${stepNumber} of ${totalSteps}</p>
+        <div class="transition-progress-bar">
+          <div class="transition-progress-fill" style="width: ${progress}%"></div>
+        </div>
+        <p class="transition-sub">${stepNumber === 1 ? "Let's begin!" : "Keep going!"}</p>
+      </div>
+    `;
   }
 
-  rewardBanner.innerHTML = html;
-  rewardBanner.className = "reward-banner " + reward.type;
-  rewardBanner.classList.remove("hidden");
+  currentStep.style.position = "relative";
+  currentStep.appendChild(overlay);
+
+  setTimeout(() => {
+    overlay.classList.add("fade-out");
+    setTimeout(() => {
+      overlay.remove();
+      if (callback) callback();
+    }, 300);
+  }, 1200);
 }
+
+// ---- Buy options (coin spending) ----
+function showBuyOptions(hintCost, answerCost) {
+  if (!state.userId) return;
+
+  const existing = document.getElementById("buyOptionsBar");
+  if (existing) existing.remove();
+
+  const bar = document.createElement("div");
+  bar.id = "buyOptionsBar";
+  bar.className = "buy-options-bar";
+  bar.innerHTML = `
+    <p class="buy-title">Stuck? Use your coins:</p>
+    <div class="buy-buttons">
+      <button class="buy-btn hint-buy" onclick="buyHint()">
+        Buy Hint (${hintCost} coins)
+      </button>
+      <button class="buy-btn answer-buy" onclick="buyAnswer()">
+        Buy Answer (${answerCost} coins)
+      </button>
+    </div>
+    <p class="buy-balance">Your balance: ${state.coins} coins</p>
+  `;
+  rewardBanner.after(bar);
+}
+
+async function buyHint() {
+  if (!state.sessionId || !state.userId) return;
+  try {
+    const data = await postJson("/api/session/buy-hint", {
+      sessionId: state.sessionId,
+      userId: state.userId,
+    });
+    state.coins = data.coinsRemaining;
+    coinsDisplay.textContent = data.coinsRemaining + " coins";
+
+    // Show the purchased hint
+    const hintEl = document.createElement("div");
+    hintEl.className = "bubble hint purchased-hint";
+    hintEl.innerHTML = `<strong>Purchased Hint (-${data.coinsSpent} coins):</strong> ${escapeHtml(data.hint)}`;
+    currentStep.appendChild(hintEl);
+
+    const bar = document.getElementById("buyOptionsBar");
+    if (bar) bar.remove();
+
+    updateStatus("Hint revealed! Try answering now.");
+  } catch (e) {
+    updateStatus(e.message, true);
+  }
+}
+
+async function buyAnswer() {
+  if (!state.sessionId || !state.userId) return;
+  try {
+    const data = await postJson("/api/session/buy-answer", {
+      sessionId: state.sessionId,
+      userId: state.userId,
+    });
+    state.coins = data.coinsRemaining;
+    coinsDisplay.textContent = data.coinsRemaining + " coins";
+    state.history = data.history || state.history;
+    renderHistory(data);
+
+    const bar = document.getElementById("buyOptionsBar");
+    if (bar) bar.remove();
+
+    showRevealLesson(data.lesson, data.message);
+    refreshUserStats();
+
+    if (data.status === "step_advanced") {
+      state.currentStep = data.currentStep;
+      answerInput.value = "";
+      showStepTransition(data.currentStep.stepNumber, data.currentStep.totalSteps, () => {
+        renderCurrentStep(data.currentStep, data.message);
+      });
+      updateStatus("Answer revealed. Moving to the next step.");
+    } else if (data.status === "completed") {
+      answerForm.classList.add("hidden");
+      showStepTransition("done", state.totalSteps, () => {
+        renderCompletedState(data.message);
+        renderSummary(data.summary);
+      });
+      updateStatus("This problem is complete.");
+    }
+  } catch (e) {
+    updateStatus(e.message, true);
+  }
+}
+// Make functions globally accessible for onclick handlers
+window.buyHint = buyHint;
+window.buyAnswer = buyAnswer;
 
 // ---- Auto-reveal lesson ----
 function showRevealLesson(lesson, message) {
@@ -265,6 +390,26 @@ function showRevealLesson(lesson, message) {
     </div>
   `;
   rewardBanner.className = "reward-banner revealed";
+  rewardBanner.classList.remove("hidden");
+}
+
+// ---- Reward banner ----
+function showReward(reward) {
+  if (!reward || reward.type === "none") return;
+
+  let html = "";
+  if (reward.type === "correct") {
+    html += `<span class="reward-msg">${escapeHtml(reward.message)}</span>`;
+    if (reward.coinsEarned) html += ` <span class="reward-coins">+${reward.coinsEarned} coins</span>`;
+    if (reward.currentStreak) html += ` <span class="reward-streak">streak: ${reward.currentStreak}</span>`;
+    if (reward.streakMessage) html += `<br><span class="reward-streak-msg">${escapeHtml(reward.streakMessage)}</span>`;
+    if (reward.completionMessage) html += `<br><span class="reward-complete">${escapeHtml(reward.completionMessage)}</span>`;
+  } else if (reward.type === "encouragement") {
+    html += `<span class="reward-encourage">${escapeHtml(reward.message)}</span>`;
+  }
+
+  rewardBanner.innerHTML = html;
+  rewardBanner.className = "reward-banner " + reward.type;
   rewardBanner.classList.remove("hidden");
 }
 
