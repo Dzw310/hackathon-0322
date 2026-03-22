@@ -37,7 +37,7 @@ class TutorService:
     def create_session(self, question: str) -> dict[str, Any]:
         clean_question = question.strip()
         if not clean_question:
-            raise ValueError("问题不能为空。")
+            raise ValueError("Question cannot be empty.")
 
         plan = self._generate_plan(clean_question)
         session = TutorSession(
@@ -64,7 +64,7 @@ class TutorService:
     def submit_answer(self, session_id: str, answer: str) -> dict[str, Any]:
         clean_answer = answer.strip()
         if not clean_answer:
-            raise ValueError("请先输入你的想法。")
+            raise ValueError("Please enter your answer or idea first.")
 
         session = self._get_session(session_id)
         if session.is_complete:
@@ -138,27 +138,28 @@ class TutorService:
         with self._lock:
             session = self._sessions.get(session_id)
         if not session:
-            raise KeyError("没有找到对应的学习会话。")
+            raise KeyError("No matching learning session was found.")
         return session
 
     def _generate_plan(self, question: str) -> LearningPlan:
         developer_prompt = (
-            "你是一个面向儿童的启发式导师。"
-            "你的任务不是直接把答案讲完，而是把问题拆成 2 到 6 个可互动的小步骤。"
-            "每一步都要让孩子先思考再作答。"
-            "语言要温柔、具体、鼓励，但不能幼稚。"
-            "不要在 child_prompt 里泄露最终答案。"
-            "success_criteria 要描述这一小步答对时应包含的关键信息。"
-            "hint_ladder 要从轻提示到更具体提示逐渐增强。"
-            "ideal_student_answer 要简洁，方便后续判题。"
+            "You are a supportive tutor for children."
+            " Your job is not to reveal the full answer immediately."
+            " Break the problem into 2 to 6 interactive micro-steps."
+            " Each step should invite the child to think before answering."
+            " Use warm, specific, encouraging language without sounding childish."
+            " Do not leak the final answer inside child_prompt."
+            " success_criteria should describe the key ideas needed for a correct response."
+            " hint_ladder should move from a gentle hint to a more specific hint."
+            " ideal_student_answer should stay concise so later evaluation is easier."
         )
         user_payload = {
             "learner_question": question,
             "requirements": [
-                "适合中文场景",
-                "一步只问一个核心点",
-                "鼓励孩子自己发现规律",
-                "最终要能汇总完整思路和答案",
+                "Use English throughout the response",
+                "Ask only one core idea per step",
+                "Encourage the child to discover the pattern independently",
+                "The final result should include the full reasoning path and answer",
             ],
         }
         raw = self._client.create_structured_response(
@@ -188,13 +189,15 @@ class TutorService:
         attempt_count: int,
     ) -> dict[str, Any]:
         developer_prompt = (
-            "你在给儿童学习产品做逐步判题。"
-            "请根据当前步骤的 success_criteria 判断孩子是否已经答到位。"
-            "如果语义正确、表达不完整但核心对了，可以判为正确。"
-            "如果错误，不要直接公布完整答案，优先给轻量提示。"
-            "第 1 次答错时使用 hint_ladder 的前一个提示。"
-            "连续答错时可以给更具体提示，但依然要鼓励思考。"
-            "feedback_to_child 要直接对孩子说话，简短、积极、明确。"
+            "You are evaluating one step in a child-focused tutoring product."
+            " Use the current step's success_criteria to decide whether the child answered sufficiently."
+            " If the meaning is correct but phrasing is incomplete, mark it correct."
+            " If the answer is incorrect, do not reveal the full solution."
+            " Prefer a light hint first."
+            " On the first incorrect attempt, use the earlier hint from hint_ladder."
+            " After repeated incorrect attempts, you may use a more specific hint while still encouraging thinking."
+            " feedback_to_child should speak directly to the child and stay short, positive, and clear."
+            " Write all output in English."
         )
         judge_payload = {
             "original_question": question,
@@ -213,10 +216,12 @@ class TutorService:
 
     def _generate_final_feedback(self, session: TutorSession) -> dict[str, Any]:
         developer_prompt = (
-            "你在给孩子做学习总结。"
-            "请先庆祝努力，再用简洁语言回顾步骤，最后给出完整答案和改进建议。"
-            "step_recap 中 learner_answered 要概括孩子在该步的表现。"
-            "feedback 要指出这一小步做得好的地方或还需巩固的地方。"
+            "You are writing the final learning summary for a child."
+            " First celebrate the effort, then recap the steps in clear language,"
+            " and finally provide the complete answer and practical improvement tips."
+            " In step_recap, learner_answered should summarize how the child performed on that step."
+            " feedback should point out what the child did well or what still needs reinforcement."
+            " Write all output in English."
         )
         history_payload = []
         for record in session.history:
@@ -272,4 +277,3 @@ class TutorService:
                 }
             )
         return items
-

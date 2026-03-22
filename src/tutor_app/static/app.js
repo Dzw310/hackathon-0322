@@ -19,11 +19,11 @@ const summaryPanel = document.getElementById("summaryPanel");
 startButton.addEventListener("click", async () => {
   const question = questionInput.value.trim();
   if (!question) {
-    updateStatus("请先输入一个问题。", true);
+    updateStatus("Please enter a question first.", true);
     return;
   }
 
-  setLoading(true, "正在拆解问题...");
+  setLoading(true, "Breaking the problem into steps...");
   summaryPanel.classList.add("hidden");
 
   try {
@@ -37,7 +37,7 @@ startButton.addEventListener("click", async () => {
     renderCurrentStep(data.currentStep, data.intro);
     renderHistory();
     answerForm.classList.remove("hidden");
-    updateStatus("第一步已经准备好了。");
+    updateStatus("The first step is ready.");
   } catch (error) {
     updateStatus(error.message, true);
   } finally {
@@ -49,11 +49,11 @@ answerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const answer = answerInput.value.trim();
   if (!answer || !state.sessionId) {
-    updateStatus("请先写下这一步的答案。", true);
+    updateStatus("Please write an answer for this step first.", true);
     return;
   }
 
-  setLoading(true, "正在判断这一步...");
+  setLoading(true, "Checking this step...");
   try {
     const data = await postJson("/api/session/answer", {
       sessionId: state.sessionId,
@@ -67,14 +67,14 @@ answerForm.addEventListener("submit", async (event) => {
       state.currentStep = data.currentStep;
       renderCurrentStep(data.currentStep, data.message, data.miniExplanation);
       answerInput.value = "";
-      updateStatus("答对了，继续下一步。");
+      updateStatus("Nice work. Move on to the next step.");
       return;
     }
 
     if (data.status === "try_again") {
       state.currentStep = data.currentStep;
       renderCurrentStep(data.currentStep, data.message, data.miniExplanation, data.hint);
-      updateStatus("这一步还可以再想想。", true);
+      updateStatus("Try thinking about this step one more time.", true);
       return;
     }
 
@@ -82,7 +82,7 @@ answerForm.addEventListener("submit", async (event) => {
       answerForm.classList.add("hidden");
       renderCompletedState(data.message, data.miniExplanation);
       renderSummary(data.summary);
-      updateStatus("这道题已经完成。");
+      updateStatus("This problem is complete.");
     }
   } catch (error) {
     updateStatus(error.message, true);
@@ -94,7 +94,7 @@ answerForm.addEventListener("submit", async (event) => {
 function renderSessionMeta(problemReframed, totalSteps) {
   sessionMeta.classList.remove("hidden");
   sessionMeta.innerHTML = `
-    <div class="meta-pill">总共 ${totalSteps} 步</div>
+    <div class="meta-pill">${totalSteps} steps total</div>
     <p>${escapeHtml(problemReframed)}</p>
   `;
 }
@@ -102,21 +102,21 @@ function renderSessionMeta(problemReframed, totalSteps) {
 function renderCurrentStep(step, intro, explanation = "", hint = "") {
   currentStep.classList.remove("empty-state");
   currentStep.innerHTML = `
-    <div class="step-badge">第 ${step.stepNumber} / ${step.totalSteps} 步</div>
+    <div class="step-badge">Step ${step.stepNumber} / ${step.totalSteps}</div>
     <h2>${escapeHtml(step.title)}</h2>
     <p class="step-goal">${escapeHtml(step.goal)}</p>
     <p class="step-prompt">${escapeHtml(step.prompt)}</p>
     ${intro ? `<div class="bubble info">${escapeHtml(intro)}</div>` : ""}
     ${explanation ? `<div class="bubble explain">${escapeHtml(explanation)}</div>` : ""}
-    ${hint ? `<div class="bubble hint">提示：${escapeHtml(hint)}</div>` : ""}
+    ${hint ? `<div class="bubble hint">Hint: ${escapeHtml(hint)}</div>` : ""}
   `;
 }
 
 function renderCompletedState(message, explanation = "") {
   currentStep.innerHTML = `
-    <div class="step-badge complete">完成</div>
-    <h2>你已经走完整个思考流程</h2>
-    <div class="bubble info">${escapeHtml(message || "做得很好。")}</div>
+    <div class="step-badge complete">Complete</div>
+    <h2>You finished the full thinking journey</h2>
+    <div class="bubble info">${escapeHtml(message || "Well done.")}</div>
     ${
       explanation
         ? `<div class="bubble explain">${escapeHtml(explanation)}</div>`
@@ -128,7 +128,7 @@ function renderCompletedState(message, explanation = "") {
 function renderHistory(latestResponse) {
   if (!state.history.length) {
     timeline.innerHTML =
-      '<p class="empty-state">孩子的每一步尝试、提示和鼓励会显示在这里。</p>';
+      '<p class="empty-state">Each attempt, hint, and encouraging message will appear here.</p>';
     return;
   }
 
@@ -140,7 +140,7 @@ function renderHistory(latestResponse) {
       const toneClass = item.isCorrect ? "correct" : "retry";
       const suffix =
         index === state.history.length - 1 && latestHint
-          ? `<p class="timeline-hint">提示：${escapeHtml(latestHint)}</p>`
+          ? `<p class="timeline-hint">Hint: ${escapeHtml(latestHint)}</p>`
           : "";
       const extra =
         index === state.history.length - 1 && latestFeedback
@@ -148,7 +148,7 @@ function renderHistory(latestResponse) {
           : "";
       return `
         <article class="timeline-item ${toneClass}">
-          <p class="timeline-step">步骤 ${item.stepIndex + 1}</p>
+          <p class="timeline-step">Step ${item.stepIndex + 1}</p>
           <p class="timeline-answer">${escapeHtml(item.answer)}</p>
           ${extra}
           ${suffix}
@@ -165,8 +165,8 @@ function renderSummary(summary) {
       (item) => `
         <article class="recap-item">
           <h3>${escapeHtml(item.title)}</h3>
-          <p><strong>你的表现：</strong>${escapeHtml(item.learner_answered)}</p>
-          <p><strong>老师反馈：</strong>${escapeHtml(item.feedback)}</p>
+          <p><strong>Your work:</strong>${escapeHtml(item.learner_answered)}</p>
+          <p><strong>Tutor feedback:</strong>${escapeHtml(item.feedback)}</p>
         </article>
       `
     )
@@ -186,21 +186,21 @@ function renderSummary(summary) {
       <p>${escapeHtml(summary.celebration)}</p>
     </div>
     <div class="summary-answer">
-      <h3>完整答案</h3>
+      <h3>Complete answer</h3>
       <p>${escapeHtml(summary.final_answer)}</p>
     </div>
     <div class="summary-columns">
       <section>
-        <h3>这次做得好的地方</h3>
+        <h3>What went well</h3>
         <ul>${strengthsHtml}</ul>
       </section>
       <section>
-        <h3>下次可以继续加强</h3>
+        <h3>What to keep improving</h3>
         <ul>${tipsHtml}</ul>
       </section>
     </div>
     <div class="summary-recap">
-      <h3>步骤回顾</h3>
+      <h3>Step recap</h3>
       ${recapHtml}
     </div>
   `;
@@ -214,7 +214,7 @@ async function postJson(url, payload) {
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || "请求失败");
+    throw new Error(data.error || "Request failed");
   }
   return data;
 }
@@ -240,4 +240,3 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
-

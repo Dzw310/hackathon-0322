@@ -56,7 +56,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         except OpenAIClientError as exc:
             self._send_json(HTTPStatus.BAD_GATEWAY, {"error": str(exc)})
         except json.JSONDecodeError:
-            self._send_json(HTTPStatus.BAD_REQUEST, {"error": "请求体不是合法 JSON。"})
+            self._send_json(HTTPStatus.BAD_REQUEST, {"error": "Request body is not valid JSON."})
         except Exception as exc:  # noqa: BLE001
             self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(exc)})
 
