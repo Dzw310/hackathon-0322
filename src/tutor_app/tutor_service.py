@@ -141,7 +141,10 @@ class TutorService:
     ) -> None:
         self._client = client or OpenAIResponsesClient.from_env()
         self._store = store or InMemoryStore()
-        self._db = db or Database()
+        try:
+            self._db = db or Database()
+        except Exception:
+            self._db = None  # type: ignore[assignment]
 
     def create_session(self, question: str, user_id: str | None = None, age_group: str = "8-10") -> dict[str, Any]:
         clean_question = question.strip()

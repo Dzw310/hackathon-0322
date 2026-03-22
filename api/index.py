@@ -20,7 +20,19 @@ load_local_env(ROOT / ".env")
 
 STATIC_DIR = ROOT / "public"
 
-_service = TutorService(store=UpstashSessionStore.from_env())
+_service: TutorService | None = None
+
+
+def _get_service() -> TutorService:
+    global _service
+    if _service is None:
+        try:
+            store = UpstashSessionStore.from_env()
+        except KeyError:
+            from tutor_app.session_store import InMemoryStore
+            store = InMemoryStore()
+        _service = TutorService(store=store)
+    return _service
 
 
 class handler(BaseHTTPRequestHandler):
@@ -30,7 +42,7 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(HTTPStatus.OK, {"status": "ok"})
             return
         if parsed.path == "/api/leaderboard":
-            result = _service.get_leaderboard()
+            result = _get_service().get_leaderboard()
             self._send_json(HTTPStatus.OK, {"leaderboard": result})
             return
         if parsed.path == "/dashboard":
@@ -44,7 +56,7 @@ class handler(BaseHTTPRequestHandler):
             payload = self._read_json()
 
             if parsed.path == "/api/register":
-                result = _service.register_user(
+                result = _get_service().register_user(
                     username=payload.get("username", ""),
                     display_name=payload.get("displayName", ""),
                     age_group=payload.get("ageGroup", "8-10"),
@@ -53,12 +65,12 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/login":
-                result = _service.login_user(username=payload.get("username", ""))
+                result = _get_service().login_user(username=payload.get("username", ""))
                 self._send_json(HTTPStatus.OK, {"user": result})
                 return
 
             if parsed.path == "/api/session":
-                result = _service.create_session(
+                result = _get_service().create_session(
                     question=payload.get("question", ""),
                     user_id=payload.get("userId"),
                     age_group=payload.get("ageGroup", "8-10"),
@@ -67,7 +79,7 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/session/answer":
-                result = _service.submit_answer(
+                result = _get_service().submit_answer(
                     payload.get("sessionId", ""),
                     payload.get("answer", ""),
                 )
@@ -75,12 +87,12 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/user/stats":
-                result = _service.get_user_stats(payload.get("userId", ""))
+                result = _get_service().get_user_stats(payload.get("userId", ""))
                 self._send_json(HTTPStatus.OK, result)
                 return
 
             if parsed.path == "/api/user/summary":
-                result = _service.generate_learning_summary(payload.get("userId", ""))
+                result = _get_service().generate_learning_summary(payload.get("userId", ""))
                 self._send_json(HTTPStatus.OK, result)
                 return
 
