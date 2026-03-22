@@ -1,56 +1,93 @@
-# 🌈 Kid-Friendly Learning App
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Kid Learning App</title>
 
-![Status](https://img.shields.io/badge/status-in%20progress-yellow)
-![License](https://img.shields.io/badge/license-MIT-blue)
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+    }
 
-An engaging, child-focused educational app designed to make learning fun, supportive, and healthy.
+    .container {
+      margin-top: 80px;
+    }
 
----
+    button {
+      display: block;
+      margin: 10px auto;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
 
-## 🎥 Demo (Coming Soon)
-_Add screenshots or a demo link here_
+    button:hover {
+      background-color: #45a049;
+    }
 
----
+    #feedback {
+      font-size: 20px;
+      margin-top: 20px;
+    }
 
-## 📌 Features
+    #streak {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
 
-### 🎨 Welcome Page
-- Bright, kid-friendly UI
-- Fun, engaging visuals
-- Optional real-world interaction disclaimer
+<body>
 
-### 💬 Positive Feedback System
-- Encouraging responses for incorrect answers
-- Positive affirmations for correct answers
-- No over-rewarding (avoids unhealthy feedback loops)
+<div class="container">
+  <h1>🌈 Learning is Fun!</h1>
 
-### 🔥 Streak Counter
-- Tracks daily progress
-- Encourages consistency without pressure
+  <h2 id="question">What is 2 + 2?</h2>
 
-### 🔔 Notifications (Planned)
-- Friendly learning reminders
-- Focused on motivation, not stress
+  <button onclick="checkAnswer(3)">3</button>
+  <button onclick="checkAnswer(4)">4</button>
+  <button onclick="checkAnswer(5)">5</button>
 
----
+  <p id="feedback"></p>
+  <p id="streak">🔥 Streak: 0</p>
+</div>
 
-## ⚖️ Disclaimer
-This app is a **supplemental learning tool** and does not replace:
-- Teachers
-- Parents
-- Real-world interaction
+<script>
+  let streak = 0;
 
----
+  function checkAnswer(answer) {
+    const correct = 4;
 
-## 🛠️ Tech Stack
-- HTML, CSS, JavaScript *(or React if you upgrade later)*
+    const positive = [
+      "Great job! 🎉",
+      "Awesome work! 🌟",
+      "You're doing amazing! 💪"
+    ];
 
----
+    const encourage = [
+      "Nice try! Keep going 💪",
+      "You're learning! 😊",
+      "Don't give up, you're close! 🌟"
+    ];
 
-## 🚀 Getting Started
+    if (answer === correct) {
+      streak++;
+      document.getElementById("feedback").innerText =
+        positive[Math.floor(Math.random() * positive.length)];
+    } else {
+      streak = 0;
+      document.getElementById("feedback").innerText =
+        encourage[Math.floor(Math.random() * encourage.length)];
+    }
 
-```bash
-git clone https://github.com/your-username/kid-learning-app.git
-cd kid-learning-app
-This app is a **supplemental learning tool**.  
-It does **not replace real-world teaching, interaction, or parental guidance**.
+    document.getElementById("streak").innerText = "🔥 Streak: " + streak;
+  }
+</script>
+
+</body>
+</html>
