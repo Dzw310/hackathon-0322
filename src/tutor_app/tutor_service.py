@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import threading
 import uuid
 from dataclasses import asdict
 from typing import Any, Protocol
@@ -13,6 +12,7 @@ from tutor_app.schemas import (
     LEARNING_PLAN_SCHEMA,
     STEP_EVALUATION_SCHEMA,
 )
+from tutor_app.session_store import InMemoryStore, SessionStore
 
 
 class StructuredLLMClient(Protocol):
@@ -29,10 +29,9 @@ class StructuredLLMClient(Protocol):
 
 
 class TutorService:
-    def __init__(self, client: StructuredLLMClient | None = None) -> None:
+    def __init__(self, client: StructuredLLMClient | None = None, store: SessionStore | None = None) -> None:
         self._client = client or OpenAIResponsesClient.from_env()
-        self._sessions: dict[str, TutorSession] = {}
-        self._lock = threading.Lock()
+        self._store = store or InMemoryStore()
 
     def create_session(self, question: str) -> dict[str, Any]:
         clean_question = question.strip()
@@ -46,8 +45,7 @@ class TutorService:
             plan=plan,
         )
 
-        with self._lock:
-            self._sessions[session.session_id] = session
+        self._store.set(session)
 
         return {
             "status": "ready",
@@ -100,6 +98,7 @@ class TutorService:
                 session.is_complete = True
                 summary = self._generate_final_feedback(session)
                 session.final_feedback = summary
+                self._store.set(session)
                 return {
                     "status": "completed",
                     "sessionId": session.session_id,
@@ -111,6 +110,7 @@ class TutorService:
 
             next_index = session.current_step_index
             next_step = session.plan.steps[next_index]
+            self._store.set(session)
             return {
                 "status": "step_advanced",
                 "sessionId": session.session_id,
@@ -123,6 +123,7 @@ class TutorService:
                 "history": self._serialize_history(session),
             }
 
+        self._store.set(session)
         return {
             "status": "try_again",
             "sessionId": session.session_id,
@@ -135,8 +136,7 @@ class TutorService:
         }
 
     def _get_session(self, session_id: str) -> TutorSession:
-        with self._lock:
-            session = self._sessions.get(session_id)
+        session = self._store.get(session_id)
         if not session:
             raise KeyError("No matching learning session was found.")
         return session

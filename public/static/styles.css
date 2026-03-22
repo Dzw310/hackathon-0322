@@ -1,0 +1,372 @@
+:root {
+  --bg: #fdf7eb;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-strong: #fffdf8;
+  --ink: #183153;
+  --muted: #54708a;
+  --accent: #ff8f3d;
+  --accent-deep: #f26b1d;
+  --mint: #9bd4b7;
+  --sky: #d7ecff;
+  --rose: #ffe0d2;
+  --line: rgba(24, 49, 83, 0.12);
+  --shadow: 0 18px 50px rgba(24, 49, 83, 0.12);
+  --radius: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: ui-rounded, "Trebuchet MS", "Avenir Next", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 143, 61, 0.2), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(155, 212, 183, 0.28), transparent 34%),
+    linear-gradient(180deg, #fff8ea 0%, #fdf7eb 42%, #f8f2e3 100%);
+}
+
+.page-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 44px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.hero-copy,
+.hero-card,
+.card {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.hero-copy {
+  padding: 34px;
+}
+
+.hero-copy h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2.4rem, 4vw, 4.3rem);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+  font-family: "Georgia", "Palatino Linotype", serif;
+}
+
+.lead,
+.hero-card li,
+.card p,
+.card label,
+.card textarea,
+.card li {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.hero-card {
+  overflow: hidden;
+  padding: 30px;
+  background: linear-gradient(180deg, #fff5d6 0%, #fffdf6 100%);
+}
+
+.hero-card ul {
+  padding-left: 18px;
+  margin: 12px 0 0;
+}
+
+.spark {
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0.8;
+  animation: bob 5.5s ease-in-out infinite;
+}
+
+.spark-a {
+  width: 90px;
+  height: 90px;
+  top: -10px;
+  right: 18px;
+  background: rgba(255, 143, 61, 0.22);
+}
+
+.spark-b {
+  width: 140px;
+  height: 140px;
+  bottom: -28px;
+  left: -18px;
+  background: rgba(155, 212, 183, 0.26);
+  animation-delay: 0.8s;
+}
+
+.workspace {
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  padding: 24px;
+}
+
+.ask-panel textarea,
+.answer-form textarea {
+  width: 100%;
+  min-height: 112px;
+  margin-top: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+}
+
+.action-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+button {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent) 0%, #ffb15c 100%);
+  color: white;
+  padding: 14px 22px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(242, 107, 29, 0.22);
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 16px 28px rgba(242, 107, 29, 0.26);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.status-text {
+  margin: 0;
+  color: var(--muted);
+}
+
+.status-text.warning {
+  color: #b75620;
+}
+
+.lesson-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+.session-meta {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+  color: var(--muted);
+}
+
+.meta-pill,
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--sky);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.step-badge.complete {
+  background: var(--mint);
+}
+
+.current-step h2,
+.feedback-panel h2,
+.summary-panel h2,
+.summary-panel h3 {
+  font-family: "Georgia", "Palatino Linotype", serif;
+}
+
+.step-goal {
+  color: var(--muted);
+  margin: 12px 0 8px;
+}
+
+.step-prompt {
+  font-size: 1.08rem;
+}
+
+.bubble {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
+.bubble.info {
+  background: #fff2d7;
+}
+
+.bubble.explain {
+  background: #eef7ff;
+}
+
+.bubble.hint {
+  background: #ffe6dc;
+}
+
+.answer-form {
+  margin-top: 20px;
+}
+
+.timeline {
+  display: grid;
+  gap: 14px;
+}
+
+.timeline-item {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  animation: lift-in 220ms ease;
+}
+
+.timeline-item.correct {
+  border-left: 6px solid #6abb89;
+}
+
+.timeline-item.retry {
+  border-left: 6px solid #ff9a62;
+}
+
+.timeline-step {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.timeline-answer,
+.timeline-feedback,
+.timeline-hint {
+  margin: 6px 0 0;
+}
+
+.summary-panel {
+  background: linear-gradient(180deg, #fffdf8 0%, #fff6e9 100%);
+}
+
+.summary-header p,
+.summary-answer p {
+  margin-top: 8px;
+}
+
+.summary-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.summary-columns section,
+.summary-answer,
+.recap-item {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(24, 49, 83, 0.08);
+}
+
+.summary-recap {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.empty-state {
+  color: var(--muted);
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes lift-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 920px) {
+  .hero,
+  .lesson-grid,
+  .summary-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .hero-copy,
+  .hero-card,
+  .card {
+    padding: 20px;
+  }
+
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+
