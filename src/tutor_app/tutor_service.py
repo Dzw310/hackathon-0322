@@ -229,23 +229,18 @@ class TutorService:
 
         is_correct = evaluation["is_correct"]
 
-        # After 3 consecutive failures on the same step:
-        # - If user has coins, offer to buy the answer
-        # - If user has no coins (or no account), auto-reveal for free
         max_failures = 3
         consecutive_failures = attempt_count + (0 if is_correct else 1)
         offer_buy = False
         auto_revealed = False
 
-        if not is_correct and consecutive_failures >= max_failures:
-            has_coins = False
+        if not is_correct:
+            # Offer coin spending on any incorrect attempt if user is logged in
             if session.user_id:
-                user = self._db.get_user(session.user_id)
-                has_coins = user is not None and user["coins"] >= COIN_COSTS["buy_answer"]
+                offer_buy = True
 
-            if has_coins:
-                offer_buy = True  # frontend will show "spend coins" option
-            else:
+            # After 3 failures, auto-reveal for free if no coins or no account
+            if consecutive_failures >= max_failures and not session.user_id:
                 auto_revealed = True
                 is_correct = True
                 evaluation["feedback_to_child"] = (
