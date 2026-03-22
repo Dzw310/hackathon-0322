@@ -1,125 +1,12 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 import tempfile
-import threading
 import unittest
-from datetime import datetime, timezone
-from typing import Any
 
 from tutor_app.content_filter import ContentFilterError, check_content_safety
+from tutor_app.database import Database
 from tutor_app.tutor_service import TutorService
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-class TestDatabase:
-    """SQLite-backed database for tests (no psycopg2 dependency)."""
-
-    def __init__(self, path: str) -> None:
-        self._conn = sqlite3.connect(path, check_same_thread=False)
-        self._conn.row_factory = sqlite3.Row
-        self._conn.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL,
-                display_name TEXT NOT NULL, age_group TEXT NOT NULL DEFAULT '8-10',
-                coins INTEGER NOT NULL DEFAULT 0, current_streak INTEGER NOT NULL DEFAULT 0,
-                best_streak INTEGER NOT NULL DEFAULT 0, total_steps_correct INTEGER NOT NULL DEFAULT 0,
-                total_steps_attempted INTEGER NOT NULL DEFAULT 0, sessions_completed INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS session_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL,
-                session_id TEXT NOT NULL, question TEXT NOT NULL, age_group TEXT NOT NULL,
-                total_steps INTEGER NOT NULL DEFAULT 0, steps_correct_first_try INTEGER NOT NULL DEFAULT 0,
-                total_attempts INTEGER NOT NULL DEFAULT 0, coins_earned INTEGER NOT NULL DEFAULT 0,
-                is_complete INTEGER NOT NULL DEFAULT 0, summary_json TEXT,
-                created_at TEXT NOT NULL, completed_at TEXT
-            );
-            CREATE TABLE IF NOT EXISTS step_attempts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
-                user_id TEXT NOT NULL, step_index INTEGER NOT NULL, step_title TEXT NOT NULL,
-                answer TEXT NOT NULL, is_correct INTEGER NOT NULL, attempt_number INTEGER NOT NULL,
-                feedback TEXT, created_at TEXT NOT NULL
-            );
-        """)
-
-    def create_user(self, user_id, username, display_name, age_group="8-10"):
-        now = _now_iso()
-        self._conn.execute(
-            "INSERT INTO users (user_id,username,display_name,age_group,created_at,updated_at) VALUES (?,?,?,?,?,?)",
-            (user_id, username.lower(), display_name, age_group, now, now))
-        self._conn.commit()
-        return self.get_user(user_id)
-
-    def get_user(self, user_id):
-        r = self._conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
-        return dict(r) if r else None
-
-    def get_user_by_username(self, username):
-        r = self._conn.execute("SELECT * FROM users WHERE username=?", (username.lower(),)).fetchone()
-        return dict(r) if r else None
-
-    def update_user_age_group(self, user_id, age_group):
-        self._conn.execute("UPDATE users SET age_group=?,updated_at=? WHERE user_id=?", (age_group, _now_iso(), user_id))
-        self._conn.commit()
-
-    def add_coins(self, user_id, amount):
-        self._conn.execute("UPDATE users SET coins=coins+?,updated_at=? WHERE user_id=?", (amount, _now_iso(), user_id))
-        self._conn.commit()
-        r = self._conn.execute("SELECT coins FROM users WHERE user_id=?", (user_id,)).fetchone()
-        return r["coins"] if r else 0
-
-    def update_streak(self, user_id, correct):
-        u = self.get_user(user_id)
-        if not u: return {"current_streak": 0, "best_streak": 0}
-        ns = u["current_streak"] + 1 if correct else 0
-        b = max(u["best_streak"], ns)
-        self._conn.execute("UPDATE users SET current_streak=?,best_streak=?,updated_at=? WHERE user_id=?", (ns, b, _now_iso(), user_id))
-        self._conn.commit()
-        return {"current_streak": ns, "best_streak": b}
-
-    def increment_stats(self, user_id, correct):
-        if correct:
-            self._conn.execute("UPDATE users SET total_steps_correct=total_steps_correct+1,total_steps_attempted=total_steps_attempted+1,updated_at=? WHERE user_id=?", (_now_iso(), user_id))
-        else:
-            self._conn.execute("UPDATE users SET total_steps_attempted=total_steps_attempted+1,updated_at=? WHERE user_id=?", (_now_iso(), user_id))
-        self._conn.commit()
-
-    def increment_sessions_completed(self, user_id):
-        self._conn.execute("UPDATE users SET sessions_completed=sessions_completed+1,updated_at=? WHERE user_id=?", (_now_iso(), user_id))
-        self._conn.commit()
-
-    def get_leaderboard(self, limit=20):
-        rows = self._conn.execute("SELECT user_id,username,display_name,coins,best_streak,current_streak,sessions_completed,total_steps_correct FROM users ORDER BY coins DESC,best_streak DESC LIMIT ?", (limit,)).fetchall()
-        return [dict(r) for r in rows]
-
-    def record_session_start(self, user_id, session_id, question, age_group, total_steps):
-        self._conn.execute("INSERT INTO session_history (user_id,session_id,question,age_group,total_steps,created_at) VALUES (?,?,?,?,?,?)", (user_id, session_id, question, age_group, total_steps, _now_iso()))
-        self._conn.commit()
-
-    def record_session_complete(self, session_id, steps_correct_first_try, total_attempts, coins_earned, summary_json=None):
-        self._conn.execute("UPDATE session_history SET is_complete=1,steps_correct_first_try=?,total_attempts=?,coins_earned=?,summary_json=?,completed_at=? WHERE session_id=?", (steps_correct_first_try, total_attempts, coins_earned, summary_json, _now_iso(), session_id))
-        self._conn.commit()
-
-    def record_step_attempt(self, session_id, user_id, step_index, step_title, answer, is_correct, attempt_number, feedback):
-        self._conn.execute("INSERT INTO step_attempts (session_id,user_id,step_index,step_title,answer,is_correct,attempt_number,feedback,created_at) VALUES (?,?,?,?,?,?,?,?,?)", (session_id, user_id, step_index, step_title, answer, int(is_correct), attempt_number, feedback, _now_iso()))
-        self._conn.commit()
-
-    def get_user_sessions(self, user_id, limit=50):
-        rows = self._conn.execute("SELECT * FROM session_history WHERE user_id=? ORDER BY created_at DESC LIMIT ?", (user_id, limit)).fetchall()
-        return [dict(r) for r in rows]
-
-    def get_user_step_attempts(self, user_id, limit=200):
-        rows = self._conn.execute("SELECT * FROM step_attempts WHERE user_id=? ORDER BY created_at DESC LIMIT ?", (user_id, limit)).fetchall()
-        return [dict(r) for r in rows]
-
-    def get_user_error_patterns(self, user_id):
-        rows = self._conn.execute("SELECT step_title,COUNT(*) as total_attempts,SUM(CASE WHEN is_correct=0 THEN 1 ELSE 0 END) as wrong_count,SUM(CASE WHEN is_correct=1 THEN 1 ELSE 0 END) as correct_count FROM step_attempts WHERE user_id=? GROUP BY step_title HAVING wrong_count>0 ORDER BY wrong_count DESC LIMIT 20", (user_id,)).fetchall()
-        return [dict(r) for r in rows]
 
 
 class FakeStructuredClient:
@@ -222,7 +109,7 @@ class TutorServiceTest(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         self._tmp.close()
-        self.db = TestDatabase(self._tmp.name)
+        self.db = Database(self._tmp.name)
         self.service = TutorService(client=FakeStructuredClient(), db=self.db)
 
     def tearDown(self) -> None:
@@ -334,7 +221,7 @@ class AutoRevealTest(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         self._tmp.close()
-        self.db = TestDatabase(self._tmp.name)
+        self.db = Database(self._tmp.name)
         self.service = TutorService(client=AlwaysWrongClient(), db=self.db)
 
     def tearDown(self) -> None:
@@ -407,7 +294,7 @@ class ContentFilterTest(unittest.TestCase):
         tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         tmp.close()
         try:
-            db = TestDatabase(tmp.name)
+            db = Database(tmp.name)
             service = TutorService(client=FakeStructuredClient(), db=db)
             with self.assertRaises(ContentFilterError):
                 service.create_session("tell me about porn")
@@ -418,7 +305,7 @@ class ContentFilterTest(unittest.TestCase):
         tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         tmp.close()
         try:
-            db = TestDatabase(tmp.name)
+            db = Database(tmp.name)
             service = TutorService(client=FakeStructuredClient(), db=db)
             session = service.create_session("What is 2+2?")
             with self.assertRaises(ContentFilterError):
