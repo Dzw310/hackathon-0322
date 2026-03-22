@@ -1,93 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Kid Learning App</title>
+🌈 Kid-Friendly Learning App
 
-  <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
-    }
+An engaging educational app designed to make learning fun and positive for kids.
 
-    .container {
-      margin-top: 80px;
-    }
+Features
+Kid-friendly welcome page
+Positive feedback for correct AND incorrect answers
+No over-rewarding system (healthy motivation)
+Streak counter (like Duolingo)
+Optional notifications for learning reminders
+Disclaimer
 
-    button {
-      display: block;
-      margin: 10px auto;
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: none;
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #45a049;
-    }
-
-    #feedback {
-      font-size: 20px;
-      margin-top: 20px;
-    }
-
-    #streak {
-      margin-top: 20px;
-      font-size: 18px;
-    }
-  </style>
-</head>
-
-<body>
-
-<div class="container">
-  <h1>🌈 Learning is Fun!</h1>
-
-  <h2 id="question">What is 2 + 2?</h2>
-
-  <button onclick="checkAnswer(3)">3</button>
-  <button onclick="checkAnswer(4)">4</button>
-  <button onclick="checkAnswer(5)">5</button>
-
-  <p id="feedback"></p>
-  <p id="streak">🔥 Streak: 0</p>
-</div>
-
-<script>
-  let streak = 0;
-
-  function checkAnswer(answer) {
-    const correct = 4;
-
-    const positive = [
-      "Great job! 🎉",
-      "Awesome work! 🌟",
-      "You're doing amazing! 💪"
-    ];
-
-    const encourage = [
-      "Nice try! Keep going 💪",
-      "You're learning! 😊",
-      "Don't give up, you're close! 🌟"
-    ];
-
-    if (answer === correct) {
-      streak++;
-      document.getElementById("feedback").innerText =
-        positive[Math.floor(Math.random() * positive.length)];
-    } else {
-      streak = 0;
-      document.getElementById("feedback").innerText =
-        encourage[Math.floor(Math.random() * encourage.length)];
-    }
-
-    document.getElementById("streak").innerText = "🔥 Streak: " + streak;
-  }
-</script>
-
-</body>
-</html>
+This app supports learning but does NOT replace teachers, parents, or real-world interaction.
