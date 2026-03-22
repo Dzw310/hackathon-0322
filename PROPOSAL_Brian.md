@@ -54,6 +54,8 @@ To keep kids engaged and build a habit of independent thinking:
 - **Thinking Streaks** — consecutive correct steps earn streak bonuses
 - **Thinking Coins** — earned through independent problem-solving, redeemable for avatar customization or new topic unlocks
 - **"Aha!" Wall** — a collection of the child's breakthrough moments, building a sense of accomplishment
+- **Real-time Reward Signals** — immediate, encouraging feedback at each step (e.g., "Well done!", "You're on fire!", "Nice thinking!") to reinforce positive behavior and keep motivation high
+- **Leaderboard & Ranking** — weekly/monthly leaderboards among peers (classmates or age group), ranking by thinking streaks, accuracy, and problems solved. Supports both global and class-level rankings to foster healthy competition while keeping it fun
 
 ### Feature 5: Parent & Teacher Dashboard
 
@@ -63,6 +65,7 @@ A monitoring interface for parents and teachers to track learning progress:
 - **Accuracy Analytics** — track correct/incorrect rates across subjects and step types
 - **Weakness Detection** — automatically identify which types of reasoning steps the child struggles with most
 - **Weekly Report** — summarized progress reports delivered via email or in-app
+- **Learning Summarization** — AI-generated summaries that analyze error patterns across domains (e.g., "Your child frequently struggles with carrying in multi-digit addition" or "Reading comprehension errors tend to occur in inference-type questions"). These summaries distill recurring mistakes into high-level lessons and actionable tips that kids can review before their next session
 
 ## Target Audience
 
