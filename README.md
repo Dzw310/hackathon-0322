@@ -1,18 +1,18 @@
-# 一步一步想一想
+# Think Step by Step
 
-一个面向儿童的互动式学习原型。用户提出问题后，系统会调用 OpenAI API，把问题拆成多步小问题，让孩子逐步作答：
+An interactive learning prototype for children. After a user asks a question, the system calls the OpenAI API, breaks the problem into multiple smaller steps, and guides the child through them one at a time:
 
-- 答对了：继续进入下一步。
-- 答错了：不给标准答案，先给更具体的提示，鼓励继续思考。
-- 全部完成后：输出完整解题步骤、最终答案和学习反馈。
+- If the child is correct, the app moves on to the next step.
+- If the child is incorrect, the app does not reveal the full answer immediately. It provides more specific hints and encourages the child to keep thinking.
+- After all steps are completed, the app returns the full solution, the final answer, and learning feedback.
 
-## 适合的场景
+## Good Use Cases
 
-- 小学数学、逻辑题、应用题
-- 简单科学概念启发
-- 写作或阅读理解时的分步引导
+- Elementary school math, logic, and word problems
+- Simple science concept exploration
+- Step-by-step guidance for writing or reading comprehension
 
-## 项目结构
+## Project Structure
 
 ```text
 hackathon-0322/
@@ -31,68 +31,68 @@ hackathon-0322/
     └── test_tutor_service.py
 ```
 
-## 核心设计
+## Core Design
 
-### 1. 分步拆解
+### 1. Step-by-Step Decomposition
 
-后端先调用 OpenAI Responses API，让模型生成结构化学习计划：
+The backend first calls the OpenAI Responses API and asks the model to generate a structured learning plan:
 
-- 问题重述
-- 鼓励性开场
-- 多个步骤
-- 每一步的目标、提问语、判定标准、提示阶梯
-- 最终参考答案
+- A reframed version of the problem
+- An encouraging introduction
+- Multiple reasoning steps
+- For each step: a goal, a child-facing prompt, evaluation criteria, and a hint ladder
+- A final reference answer
 
-### 2. 逐步交互判题
+### 2. Interactive Step Evaluation
 
-每次孩子提交中间答案，后端都会再次调用模型，对当前步骤进行判断：
+Each time the child submits an intermediate answer, the backend calls the model again to evaluate the current step:
 
-- 是否答对
-- 当前反馈
-- 下一条提示
-- 一句简短解释
+- Whether the answer is correct
+- Feedback for the child
+- The next hint
+- A short explanation
 
-### 3. 最终总结
+### 3. Final Summary
 
-全部步骤完成后，再调用一次模型，生成：
+After all steps are completed, the backend makes one more model call to generate:
 
-- 完整答案
-- 每一步回顾
-- 做得好的地方
-- 下次可以加强的地方
+- The complete answer
+- A recap of each step
+- What the child did well
+- What the child can improve next time
 
-## 环境要求
+## Requirements
 
 - Python 3.13+
-- OpenAI API Key
+- OpenAI API key
 
-项目本地开发不依赖第三方 Python 包，直接使用标准库运行。
+This project does not require any third-party Python packages for local development. It runs entirely on the Python standard library.
 
-## 配置
+## Configuration
 
-复制环境变量示例并填写：
+Copy the example environment file and fill it in:
 
 ```bash
 cp .env.example .env
 ```
 
-需要至少设置：
+At minimum, set:
 
 ```bash
-export OPENAI_API_KEY="你的 key"
+export OPENAI_API_KEY="your_key"
 export OPENAI_MODEL="gpt-5.4"
 export OPENAI_REASONING_EFFORT="medium"
 ```
 
-如果你更看重成本和速度，也可以把模型改成 `gpt-5-mini`。
+If you care more about cost and speed, you can switch the model to `gpt-5-mini`.
 
-## 运行
+## Run
 
 ```bash
 python run.py
 ```
 
-默认会启动在：
+By default, the app starts at:
 
 ```text
 http://127.0.0.1:8000
@@ -102,42 +102,42 @@ http://127.0.0.1:8000
 
 ### `POST /api/session`
 
-请求：
+Request:
 
 ```json
 {
-  "question": "12颗糖分给3个朋友，每人几颗？"
+  "question": "If 12 candies are shared among 3 friends, how many does each friend get?"
 }
 ```
 
-作用：创建一个新的分步学习会话，并返回第一步。
+Purpose: Creates a new step-by-step learning session and returns the first step.
 
 ### `POST /api/session/answer`
 
-请求：
+Request:
 
 ```json
 {
-  "sessionId": "会话ID",
-  "answer": "12颗"
+  "sessionId": "session_id",
+  "answer": "12 candies"
 }
 ```
 
-作用：提交当前步骤的答案，返回继续、重试或完成状态。
+Purpose: Submits the current step answer and returns one of three states: continue, retry, or completed.
 
-## 验证
+## Verification
 
-运行单元测试：
+Run the unit tests with:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-## OpenAI 接入说明
+## OpenAI Integration Notes
 
-这个项目使用 Responses API 和结构化输出，让模型稳定返回 JSON。根据 OpenAI 官方文档，Responses API 是新项目推荐接口；截至 2026-03-22，官方模型总览页建议优先从 `gpt-5.4` 开始，若更关注成本和延迟则可使用 `gpt-5-mini`。
+This project uses the Responses API with structured outputs so the model can reliably return JSON. According to the official OpenAI documentation, the Responses API is the recommended interface for new projects. As of March 22, 2026, the official model docs recommend starting with `gpt-5.4`; if you care more about cost and latency, `gpt-5-mini` is a reasonable alternative.
 
-参考：
+References:
 
 - https://developers.openai.com/api/docs/guides/text
 - https://developers.openai.com/api/docs/models
